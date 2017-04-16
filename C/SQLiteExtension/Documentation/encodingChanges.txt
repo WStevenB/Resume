@@ -1,0 +1,379 @@
+
+// Controls if normal SQL keywords should be accepted or not
+// Set to 1 after sqlite3RunParser completes once
+// Set back to 0 during process_input in shell.c
+
+int SQLITE_ACCEPT_NORMAL_KEYWORDS = 0;
+
+
+
+
+
+// if sqlite mode says normal keywords should be rejected, then only test for encoded keywords
+
+static int keywordCode(const char *z, int n, int *pType){
+
+    if(SQLITE_ACCEPT_NORMAL_KEYWORDS == 0) return keywordCodeSteve(z, n, pType);
+
+}
+
+
+
+SQLITE_PRIVATE int sqlite3RunParser(Parse *pParse, const char *zSql, char **pzErrMsg){
+	
+      // this occurs after each word/symbol in query is analyzed
+      //triggered by semi-colon token, i.e. end of user defined query
+      // allows normal SQL keywords to be accepted for future internal sqlite processes
+      // will be set back to 0 in process_input of shell.c
+
+    if(tokenType == TK_SEMI) SQLITE_ACCEPT_NORMAL_KEYWORDS = 1;
+}
+
+
+
+
+//in shell.c, occurs when output is printed into terminal shell
+//set back to zero to reject normal keywords in first query seen
+
+static int process_input(ShellState *p, FILE *in){
+
+    SQLITE_ACCEPT_NORMAL_KEYWORDS = 0;
+
+}
+
+
+
+
+//randomized keywords all start with 'XZ' so they fit into the search of this function nicely, and don't interfere at all with normal keywords because none of them start with 'X'
+
+SQLITE_PRIVATE int sqlite3GetToken(const unsigned char *z, int *tokenType){
+
+
+    case CC_SEMI: {
+      *tokenType = TK_SEMI;
+      return 1;
+    }
+    case CC_PLUS: {
+      *tokenType = TK_PLUS;
+      return 1;
+    }
+    case CC_STAR: {
+      *tokenType = TK_STAR;
+      return 1;
+    }
+
+
+
+
+
+    case CC_KYWD: {
+      for(i=1; aiClass[z[i]]<=CC_KYWD; i++){}
+      if( IdChar(z[i]) ){
+        /* This token started out using characters that can appear in keywords,
+        ** but z[i] is a character not allowed within keywords, so this must
+        ** be an identifier instead */
+        i++;
+        break;
+      }
+      *tokenType = TK_ID;
+      return keywordCode((char*)z, i, tokenType);
+    }
+    case CC_X: {
+      testcase( z[0]=='x' ); testcase( z[0]=='X' );
+      if( z[1]=='\'' ){
+        *tokenType = TK_BLOB;
+        for(i=2; sqlite3Isxdigit(z[i]); i++){}
+        if( z[i]!='\'' || i%2 ){
+          *tokenType = TK_ILLEGAL;
+          while( z[i] && z[i]!='\'' ){ i++; }
+        }
+        if( z[i] ) i++;
+        return i;
+      }
+      else if( z[1]=='Z') {
+      	*tokenType = TK_ID;
+      	return keywordCodeSteve((char*)z, 12, tokenType);
+      }
+    }
+
+}
+
+
+
+
+
+
+//parsing function for randomized keywords
+
+static int keywordCodeSteve(const char *z, int n, int *pType){
+  
+  static const char zText[1500] = {
+    'X', 'Z', 'Q', 'B', 'U', 'A', 'L', 'I', 'A', 'L', 'M', 'L', 'X', 'Z', 'W', 'D', 'E', 'L', 'N', 'N', 'Y', 'W', 'N', 'Q', 
+'X', 'Z', 'N', 'G', 'K', 'I', 'V', 'B', 'B', 'E', 'D', 'U', 'X', 'Z', 'C', 'V', 'U', 'W', 'M', 'S', 'R', 'D', 'E', 'V', 
+'X', 'Z', 'F', 'D', 'B', 'O', 'C', 'F', 'D', 'G', 'Q', 'R', 'X', 'Z', 'K', 'J', 'F', 'S', 'V', 'J', 'Q', 'M', 'D', 'J', 
+'X', 'Z', 'G', 'U', 'H', 'Q', 'I', 'A', 'I', 'H', 'Y', 'U', 'X', 'Z', 'U', 'V', 'R', 'Q', 'L', 'K', 'F', 'V', 'G', 'Q', 
+'X', 'Z', 'X', 'U', 'M', 'K', 'K', 'R', 'Q', 'C', 'A', 'D', 'X', 'Z', 'C', 'F', 'Y', 'T', 'P', 'J', 'U', 'J', 'F', 'B', 
+'X', 'Z', 'W', 'V', 'H', 'V', 'W', 'O', 'Q', 'N', 'H', 'K', 'X', 'Z', 'D', 'T', 'G', 'M', 'L', 'K', 'I', 'W', 'G', 'Q', 
+'X', 'Z', 'I', 'F', 'G', 'U', 'R', 'P', 'V', 'W', 'A', 'C', 'X', 'Z', 'P', 'V', 'P', 'E', 'T', 'B', 'M', 'P', 'M', 'U', 
+'X', 'Z', 'A', 'C', 'T', 'O', 'Y', 'H', 'X', 'M', 'I', 'F', 'X', 'Z', 'A', 'W', 'C', 'O', 'R', 'Q', 'O', 'L', 'E', 'H', 
+'X', 'Z', 'R', 'S', 'N', 'F', 'U', 'H', 'E', 'C', 'R', 'J', 'X', 'Z', 'W', 'R', 'J', 'K', 'P', 'G', 'K', 'Q', 'V', 'J', 
+'X', 'Z', 'Q', 'J', 'O', 'U', 'B', 'R', 'S', 'A', 'L', 'C', 'X', 'Z', 'M', 'B', 'L', 'F', 'D', 'G', 'O', 'O', 'T', 'Q', 
+'X', 'Z', 'D', 'V', 'T', 'Y', 'H', 'H', 'N', 'R', 'Y', 'L', 'X', 'Z', 'F', 'W', 'O', 'T', 'Q', 'H', 'E', 'R', 'E', 'D', 
+'X', 'Z', 'O', 'D', 'P', 'P', 'W', 'V', 'G', 'E', 'H', 'I', 'X', 'Z', 'Q', 'V', 'W', 'E', 'G', 'U', 'P', 'P', 'N', 'S', 
+'X', 'Z', 'D', 'A', 'B', 'A', 'W', 'O', 'L', 'R', 'O', 'U', 'X', 'Z', 'C', 'W', 'K', 'Q', 'C', 'Y', 'F', 'E', 'C', 'K', 
+'X', 'Z', 'B', 'J', 'K', 'P', 'U', 'J', 'A', 'K', 'N', 'U', 'X', 'Z', 'R', 'O', 'D', 'K', 'Y', 'N', 'C', 'P', 'R', 'H', 
+'X', 'Z', 'K', 'O', 'O', 'L', 'G', 'T', 'L', 'G', 'C', 'G', 'X', 'Z', 'O', 'L', 'M', 'C', 'R', 'T', 'P', 'K', 'E', 'N', 
+'X', 'Z', 'O', 'B', 'E', 'S', 'D', 'M', 'S', 'A', 'Q', 'O', 'X', 'Z', 'W', 'P', 'L', 'T', 'A', 'M', 'T', 'X', 'I', 'B', 
+'X', 'Z', 'W', 'T', 'I', 'G', 'G', 'F', 'B', 'A', 'R', 'F', 'X', 'Z', 'W', 'Q', 'K', 'E', 'S', 'I', 'K', 'V', 'H', 'T', 
+'X', 'Z', 'A', 'K', 'O', 'M', 'I', 'X', 'A', 'S', 'C', 'F', 'X', 'Z', 'Y', 'Q', 'C', 'D', 'P', 'T', 'S', 'W', 'L', 'W', 
+'X', 'Z', 'K', 'R', 'H', 'L', 'Q', 'G', 'E', 'G', 'B', 'Q', 'X', 'Z', 'B', 'W', 'P', 'O', 'A', 'L', 'F', 'U', 'X', 'H', 
+'X', 'Z', 'F', 'I', 'X', 'M', 'F', 'G', 'O', 'G', 'N', 'X', 'X', 'Z', 'P', 'M', 'K', 'K', 'I', 'H', 'D', 'C', 'V', 'C', 
+'X', 'Z', 'S', 'S', 'Q', 'K', 'D', 'B', 'A', 'M', 'C', 'D', 'X', 'Z', 'O', 'W', 'Y', 'D', 'R', 'C', 'T', 'T', 'G', 'J', 
+'X', 'Z', 'Q', 'X', 'S', 'D', 'A', 'O', 'M', 'F', 'F', 'S', 'X', 'Z', 'I', 'D', 'X', 'U', 'O', 'L', 'R', 'N', 'J', 'D', 
+'X', 'Z', 'F', 'B', 'D', 'K', 'I', 'R', 'N', 'G', 'R', 'G', 'X', 'Z', 'N', 'J', 'U', 'M', 'K', 'U', 'A', 'N', 'J', 'O', 
+'X', 'Z', 'O', 'T', 'G', 'J', 'U', 'L', 'Y', 'D', 'O', 'F', 'X', 'Z', 'J', 'G', 'K', 'D', 'D', 'O', 'T', 'H', 'T', 'H', 
+'X', 'Z', 'A', 'F', 'N', 'Y', 'F', 'Y', 'H', 'L', 'J', 'S', 'X', 'Z', 'L', 'E', 'D', 'T', 'N', 'L', 'U', 'T', 'P', 'W', 
+'X', 'Z', 'S', 'J', 'R', 'L', 'V', 'H', 'X', 'R', 'I', 'U', 'X', 'Z', 'A', 'R', 'S', 'B', 'N', 'I', 'G', 'H', 'E', 'V', 
+'X', 'Z', 'E', 'N', 'S', 'U', 'T', 'F', 'C', 'P', 'O', 'R', 'X', 'Z', 'T', 'A', 'R', 'V', 'O', 'P', 'N', 'B', 'C', 'X', 
+'X', 'Z', 'A', 'P', 'D', 'O', 'S', 'S', 'K', 'C', 'G', 'F', 'X', 'Z', 'E', 'N', 'O', 'S', 'S', 'E', 'P', 'W', 'R', 'Q', 
+'X', 'Z', 'E', 'I', 'C', 'P', 'A', 'A', 'A', 'W', 'L', 'W', 'X', 'Z', 'U', 'E', 'E', 'G', 'U', 'N', 'K', 'E', 'C', 'A', 
+'X', 'Z', 'U', 'A', 'J', 'J', 'N', 'G', 'K', 'X', 'D', 'J', 'X', 'Z', 'A', 'Q', 'J', 'L', 'S', 'R', 'M', 'M', 'N', 'R', 
+'X', 'Z', 'S', 'N', 'P', 'I', 'J', 'A', 'I', 'I', 'X', 'E', 'X', 'Z', 'T', 'L', 'T', 'R', 'V', 'D', 'X', 'S', 'C', 'T', 
+'X', 'Z', 'O', 'C', 'S', 'C', 'W', 'E', 'T', 'R', 'M', 'D', 'X', 'Z', 'A', 'W', 'Q', 'J', 'G', 'G', 'K', 'A', 'Y', 'M', 
+'X', 'Z', 'W', 'C', 'A', 'X', 'O', 'N', 'V', 'R', 'P', 'O', 'X', 'Z', 'S', 'T', 'K', 'S', 'D', 'Q', 'T', 'M', 'L', 'F', 
+'X', 'Z', 'F', 'Q', 'V', 'T', 'D', 'W', 'T', 'K', 'K', 'O', 'X', 'Z', 'S', 'X', 'S', 'O', 'V', 'M', 'B', 'U', 'M', 'I', 
+'X', 'Z', 'H', 'C', 'C', 'W', 'K', 'G', 'L', 'W', 'F', 'P', 'X', 'Z', 'M', 'W', 'O', 'S', 'G', 'G', 'F', 'F', 'T', 'R', 
+'X', 'Z', 'T', 'L', 'G', 'B', 'V', 'U', 'B', 'U', 'V', 'Q', 'X', 'Z', 'O', 'Y', 'A', 'C', 'X', 'D', 'O', 'X', 'J', 'W', 
+'X', 'Z', 'K', 'V', 'E', 'T', 'B', 'U', 'I', 'Y', 'I', 'P', 'X', 'Z', 'G', 'V', 'A', 'T', 'O', 'V', 'U', 'A', 'B', 'O', 
+'X', 'Z', 'F', 'Q', 'A', 'O', 'B', 'N', 'W', 'M', 'U', 'D', 'X', 'Z', 'Q', 'H', 'V', 'W', 'G', 'W', 'G', 'L', 'Y', 'A', 
+'X', 'Z', 'L', 'B', 'M', 'G', 'J', 'S', 'Y', 'F', 'M', 'B', 'X', 'Z', 'H', 'N', 'W', 'T', 'R', 'T', 'U', 'O', 'S', 'N', 
+'X', 'Z', 'X', 'V', 'E', 'F', 'X', 'Y', 'A', 'C', 'M', 'Q', 'X', 'Z', 'O', 'I', 'A', 'B', 'D', 'E', 'D', 'T', 'F', 'H', 
+'X', 'Z', 'N', 'Q', 'Y', 'S', 'U', 'D', 'K', 'B', 'F', 'M', 'X', 'Z', 'B', 'R', 'S', 'L', 'C', 'O', 'V', 'G', 'H', 'K', 
+'X', 'Z', 'S', 'V', 'R', 'U', 'M', 'X', 'M', 'V', 'Q', 'N', 'X', 'Z', 'P', 'A', 'J', 'K', 'Y', 'G', 'W', 'K', 'J', 'U', 
+'X', 'Z', 'O', 'X', 'W', 'A', 'P', 'V', 'P', 'O', 'X', 'N', 'X', 'Z', 'H', 'V', 'M', 'T', 'O', 'R', 'Y', 'D', 'G', 'W', 
+'X', 'Z', 'P', 'O', 'K', 'R', 'V', 'A', 'I', 'H', 'L', 'U', 'X', 'Z', 'R', 'K', 'W', 'L', 'V', 'T', 'X', 'Q', 'F', 'P', 
+'X', 'Z', 'H', 'X', 'W', 'C', 'F', 'S', 'N', 'O', 'U', 'G', 'X', 'Z', 'G', 'S', 'E', 'M', 'F', 'A', 'N', 'F', 'E', 'O', 
+'X', 'Z', 'N', 'I', 'C', 'D', 'V', 'W', 'Y', 'B', 'X', 'U', 'X', 'Z', 'T', 'H', 'X', 'P', 'O', 'Q', 'Q', 'H', 'L', 'C', 
+'X', 'Z', 'M', 'S', 'L', 'E', 'N', 'X', 'F', 'J', 'G', 'V', 'X', 'Z', 'G', 'R', 'M', 'Q', 'B', 'Y', 'U', 'S', 'F', 'I', 
+'X', 'Z', 'S', 'L', 'Q', 'A', 'M', 'Y', 'U', 'O', 'X', 'N', 'X', 'Z', 'I', 'F', 'T', 'B', 'B', 'U', 'V', 'X', 'O', 'W', 
+'X', 'Z', 'Q', 'P', 'U', 'C', 'O', 'C', 'T', 'H', 'N', 'P', 'X', 'Z', 'V', 'X', 'B', 'D', 'I', 'A', 'C', 'K', 'R', 'O', 
+'X', 'Z', 'D', 'Q', 'L', 'R', 'N', 'A', 'X', 'L', 'O', 'G', 'X', 'Z', 'C', 'W', 'E', 'I', 'Q', 'D', 'Q', 'N', 'L', 'K', 
+'X', 'Z', 'E', 'N', 'A', 'I', 'R', 'K', 'D', 'P', 'R', 'A', 'X', 'Z', 'R', 'K', 'G', 'Y', 'T', 'Y', 'E', 'C', 'O', 'N', 
+'X', 'Z', 'D', 'I', 'R', 'H', 'M', 'Y', 'S', 'S', 'L', 'F', 'X', 'Z', 'J', 'N', 'Y', 'H', 'K', 'O', 'P', 'C', 'A', 'D', 
+'X', 'Z', 'V', 'H', 'T', 'N', 'N', 'R', 'Q', 'E', 'O', 'Q', 'X', 'Z', 'X', 'O', 'Y', 'W', 'G', 'V', 'U', 'S', 'U', 'S', 
+'X', 'Z', 'Q', 'K', 'D', 'L', 'Q', 'E', 'L', 'Y', 'O', 'E', 'X', 'Z', 'I', 'B', 'C', 'L', 'Q', 'U', 'N', 'D', 'S', 'U', 
+'X', 'Z', 'I', 'N', 'E', 'U', 'G', 'T', 'N', 'B', 'A', 'N', 'X', 'Z', 'S', 'W', 'G', 'H', 'L', 'L', 'E', 'H', 'W', 'J', 
+'X', 'Z', 'F', 'Q', 'O', 'K', 'H', 'W', 'M', 'N', 'F', 'K', 'X', 'Z', 'H', 'Q', 'Y', 'A', 'K', 'C', 'G', 'I', 'F', 'V', 
+'X', 'Z', 'P', 'J', 'X', 'B', 'K', 'L', 'T', 'T', 'Y', 'F', 'X', 'Z', 'Q', 'G', 'G', 'J', 'O', 'Q', 'Y', 'S', 'M', 'I', 
+'X', 'Z', 'H', 'A', 'U', 'P', 'F', 'B', 'X', 'G', 'W', 'J', 'X', 'Z', 'F', 'V', 'B', 'A', 'S', 'V', 'S', 'N', 'Y', 'V', 
+'X', 'Z', 'C', 'R', 'O', 'A', 'T', 'B', 'K', 'O', 'L', 'S', 'X', 'Z', 'D', 'M', 'U', 'V', 'N', 'P', 'N', 'I', 'U', 'I', 
+'X', 'Z', 'M', 'N', 'W', 'P', 'A', 'T', 'E', 'G', 'Q', 'S', 'X', 'Z', 'W', 'K', 'T', 'P', 'F', 'P', 'K', 'U', 'U', 'E', 
+'X', 'Z', 'Q', 'I', 'T', 'D', 'F', 'R', 'A', 'F', 'L', 'D', 'X', 'Z', 'H', 'K', 'S', 'Q', 'I', 'O', 'T', 'Y', 'Y', 'Y', 
+'X', 'Z', 'V', 'E', 'X', 'S', 'V', 'R', 'R', 'F', 'P', 'X', 'X', 'Z', 'E', 'S', 'M', 'P', 'Q', 'E', 'S', 'T', 'J', 'H', 
+'X', 'Z', 'T', 'Y', 'T', 'M', 'K', 'M', 'R', 'D', 'G', 'Q', 
+  };
+  static const unsigned char aHash[127] = {
+      45, 0, 18, 0, 21, 96, 0, 0, 5, 50, 93, 3, 0, 64, 78, 74, 0, 7, 30, 0, 112, 81, 85, 0, 
+0, 108, 9, 12, 17, 37, 0, 0, 33, 25, 0, 46, 113, 0, 69, 92, 41, 19, 53, 0, 70, 0, 0, 20, 
+0, 0, 0, 57, 4, 0, 59, 61, 32, 31, 52, 40, 39, 27, 0, 120, 0, 0, 77, 79, 15, 0, 0, 98, 
+0, 0, 10, 0, 80, 0, 124, 65, 55, 0, 104, 2, 0, 125, 22, 29, 1, 89, 0, 0, 83, 0, 0, 8, 
+62, 36, 0, 94, 35, 0, 34, 0, 0, 13, 102, 0, 0, 84, 0, 71, 75, 0, 38, 11, 88, 0, 0, 14, 
+103, 99, 0, 0, 0, 0, 6, 
+  };
+  static const unsigned char aNext[125] = {
+       16, 24, 26, 60, 0, 0, 49, 43, 0, 97, 87, 68, 23, 106, 0, 48, 116, 28, 72, 100, 0, 44, 0, 101, 
+56, 91, 117, 0, 105, 0, 0, 73, 109, 42, 47, 0, 58, 0, 0, 0, 0, 54, 0, 0, 51, 0, 0, 0, 
+0, 107, 0, 0, 110, 0, 0, 114, 0, 67, 66, 0, 0, 0, 0, 0, 0, 0, 90, 86, 0, 0, 0, 76, 
+0, 82, 0, 0, 0, 0, 0, 0, 0, 0, 95, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 123, 0, 
+0, 0, 0, 119, 0, 0, 0, 115, 0, 118, 111, 122, 0, 0, 0, 0, 121, 0, 0, 0, 0, 0, 0, 0, 
+0, 0, 0, 0, 0, 
+  };
+  static const unsigned char aLen[125] = {
+       12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 
+12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 
+12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 
+12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 
+12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 
+12, 12, 12, 12, 12, 
+  };
+  static const unsigned short int aOffset[125] = {
+       0, 12, 24, 36, 48, 60, 72, 84, 96, 108, 120, 132, 144, 156, 168, 180, 192, 204, 216, 228, 240, 252, 264, 276, 
+288, 300, 312, 324, 336, 348, 360, 372, 384, 396, 408, 420, 432, 444, 456, 468, 480, 492, 504, 516, 528, 540, 552, 564, 
+576, 588, 600, 612, 624, 636, 648, 660, 672, 684, 696, 708, 720, 732, 744, 756, 768, 780, 792, 804, 816, 828, 840, 852, 
+864, 876, 888, 900, 912, 924, 936, 948, 960, 972, 984, 996, 1008, 1020, 1032, 1044, 1056, 1068, 1080, 1092, 1104, 1116, 1128, 1140, 
+1152, 1164, 1176, 1188, 1200, 1212, 1224, 1236, 1248, 1260, 1272, 1284, 1296, 1308, 1320, 1332, 1344, 1356, 1368, 1380, 1392, 1404, 1416, 1428, 
+1440, 1452, 1464, 1476, 1488, 
+  };
+  static const unsigned char aCode[125] = {
+    TK_REINDEX,    TK_INDEXED,    TK_INDEX,      TK_DESC,       TK_ESCAPE,     
+    TK_EACH,       TK_CHECK,      TK_KEY,        TK_BEFORE,     TK_FOREIGN,    
+    TK_FOR,        TK_IGNORE,     TK_LIKE_KW,    TK_EXPLAIN,    TK_INSTEAD,    
+    TK_ADD,        TK_DATABASE,   TK_AS,         TK_SELECT,     TK_TABLE,      
+    TK_JOIN_KW,    TK_THEN,       TK_END,        TK_DEFERRABLE, TK_ELSE,       
+    TK_EXCEPT,     TK_TRANSACTION,TK_ACTION,     TK_ON,         TK_JOIN_KW,    
+    TK_ALTER,      TK_RAISE,      TK_EXCLUSIVE,  TK_EXISTS,     TK_SAVEPOINT,  
+    TK_INTERSECT,  TK_TRIGGER,    TK_REFERENCES, TK_CONSTRAINT, TK_INTO,       
+    TK_OFFSET,     TK_OF,         TK_SET,        TK_TEMP,       TK_TEMP,       
+    TK_OR,         TK_UNIQUE,     TK_QUERY,      TK_WITHOUT,    TK_WITH,       
+    TK_JOIN_KW,    TK_RELEASE,    TK_ATTACH,     TK_HAVING,     TK_GROUP,      
+    TK_UPDATE,     TK_BEGIN,      TK_JOIN_KW,    TK_RECURSIVE,  TK_BETWEEN,    
+    TK_NOTNULL,    TK_NOT,        TK_NO,         TK_NULL,       TK_LIKE_KW,    
+    TK_CASCADE,    TK_ASC,        TK_DELETE,     TK_CASE,       TK_COLLATE,    
+    TK_CREATE,     TK_CTIME_KW,   TK_DETACH,     TK_IMMEDIATE,  TK_JOIN,       
+    TK_INSERT,     TK_MATCH,      TK_PLAN,       TK_ANALYZE,    TK_PRAGMA,     
+    TK_ABORT,      TK_VALUES,     TK_VIRTUAL,    TK_LIMIT,      TK_WHEN,       
+    TK_WHERE,      TK_RENAME,     TK_AFTER,      TK_REPLACE,    TK_AND,        
+    TK_DEFAULT,    TK_AUTOINCR,   TK_TO,         TK_IN,         TK_CAST,       
+    TK_COLUMNKW,   TK_COMMIT,     TK_CONFLICT,   TK_JOIN_KW,    TK_CTIME_KW,   
+    TK_CTIME_KW,   TK_PRIMARY,    TK_DEFERRED,   TK_DISTINCT,   TK_IS,         
+    TK_DROP,       TK_FAIL,       TK_FROM,       TK_JOIN_KW,    TK_LIKE_KW,    
+    TK_BY,         TK_IF,         TK_ISNULL,     TK_ORDER,      TK_RESTRICT,   
+    TK_JOIN_KW,    TK_ROLLBACK,   TK_ROW,        TK_UNION,      TK_USING,      
+    TK_VACUUM,     TK_VIEW,       TK_INITIALLY,  TK_ALL,        TK_FORECAST,
+  };
+  int i, j;
+  const char *zKW;
+  if( n>=2 ){
+    i = ((charMap(z[2])*4) ^ (charMap(z[n-1])*3) ^ (charMap(z[6])*2)) % 127;
+    for(i=((int)aHash[i])-1; i>=0; i=((int)aNext[i])-1){
+      if( aLen[i]!=n ) continue;
+      j = 0;
+      zKW = &zText[aOffset[i]];
+#ifdef SQLITE_ASCII
+      while( j<n && (z[j]&~0x20)==zKW[j] ){ j++; }
+#endif
+#ifdef SQLITE_EBCDIC
+      while( j<n && toupper(z[j])==zKW[j] ){ j++; }
+#endif
+      if( j<n ) continue;
+      testcase( i==0 ); /* REINDEX */
+      testcase( i==1 ); /* INDEXED */
+      testcase( i==2 ); /* INDEX */
+      testcase( i==3 ); /* DESC */
+      testcase( i==4 ); /* ESCAPE */
+      testcase( i==5 ); /* EACH */
+      testcase( i==6 ); /* CHECK */
+      testcase( i==7 ); /* KEY */
+      testcase( i==8 ); /* BEFORE */
+      testcase( i==9 ); /* FOREIGN */
+      testcase( i==10 ); /* FOR */
+      testcase( i==11 ); /* IGNORE */
+      testcase( i==12 ); /* REGEXP */
+      testcase( i==13 ); /* EXPLAIN */
+      testcase( i==14 ); /* INSTEAD */
+      testcase( i==15 ); /* ADD */
+      testcase( i==16 ); /* DATABASE */
+      testcase( i==17 ); /* AS */
+      testcase( i==18 ); /* SELECT */
+      testcase( i==19 ); /* TABLE */
+      testcase( i==20 ); /* LEFT */
+      testcase( i==21 ); /* THEN */
+      testcase( i==22 ); /* END */
+      testcase( i==23 ); /* DEFERRABLE */
+      testcase( i==24 ); /* ELSE */
+      testcase( i==25 ); /* EXCEPT */
+      testcase( i==26 ); /* TRANSACTION */
+      testcase( i==27 ); /* ACTION */
+      testcase( i==28 ); /* ON */
+      testcase( i==29 ); /* NATURAL */
+      testcase( i==30 ); /* ALTER */
+      testcase( i==31 ); /* RAISE */
+      testcase( i==32 ); /* EXCLUSIVE */
+      testcase( i==33 ); /* EXISTS */
+      testcase( i==34 ); /* SAVEPOINT */
+      testcase( i==35 ); /* INTERSECT */
+      testcase( i==36 ); /* TRIGGER */
+      testcase( i==37 ); /* REFERENCES */
+      testcase( i==38 ); /* CONSTRAINT */
+      testcase( i==39 ); /* INTO */
+      testcase( i==40 ); /* OFFSET */
+      testcase( i==41 ); /* OF */
+      testcase( i==42 ); /* SET */
+      testcase( i==43 ); /* TEMPORARY */
+      testcase( i==44 ); /* TEMP */
+      testcase( i==45 ); /* OR */
+      testcase( i==46 ); /* UNIQUE */
+      testcase( i==47 ); /* QUERY */
+      testcase( i==48 ); /* WITHOUT */
+      testcase( i==49 ); /* WITH */
+      testcase( i==50 ); /* OUTER */
+      testcase( i==51 ); /* RELEASE */
+      testcase( i==52 ); /* ATTACH */
+      testcase( i==53 ); /* HAVING */
+      testcase( i==54 ); /* GROUP */
+      testcase( i==55 ); /* UPDATE */
+      testcase( i==56 ); /* BEGIN */
+      testcase( i==57 ); /* INNER */
+      testcase( i==58 ); /* RECURSIVE */
+      testcase( i==59 ); /* BETWEEN */
+      testcase( i==60 ); /* NOTNULL */
+      testcase( i==61 ); /* NOT */
+      testcase( i==62 ); /* NO */
+      testcase( i==63 ); /* NULL */
+      testcase( i==64 ); /* LIKE */
+      testcase( i==65 ); /* CASCADE */
+      testcase( i==66 ); /* ASC */
+      testcase( i==67 ); /* DELETE */
+      testcase( i==68 ); /* CASE */
+      testcase( i==69 ); /* COLLATE */
+      testcase( i==70 ); /* CREATE */
+      testcase( i==71 ); /* CURRENT_DATE */
+      testcase( i==72 ); /* DETACH */
+      testcase( i==73 ); /* IMMEDIATE */
+      testcase( i==74 ); /* JOIN */
+      testcase( i==75 ); /* INSERT */
+      testcase( i==76 ); /* MATCH */
+      testcase( i==77 ); /* PLAN */
+      testcase( i==78 ); /* ANALYZE */
+      testcase( i==79 ); /* PRAGMA */
+      testcase( i==80 ); /* ABORT */
+      testcase( i==81 ); /* VALUES */
+      testcase( i==82 ); /* VIRTUAL */
+      testcase( i==83 ); /* LIMIT */
+      testcase( i==84 ); /* WHEN */
+      testcase( i==85 ); /* WHERE */
+      testcase( i==86 ); /* RENAME */
+      testcase( i==87 ); /* AFTER */
+      testcase( i==88 ); /* REPLACE */
+      testcase( i==89 ); /* AND */
+      testcase( i==90 ); /* DEFAULT */
+      testcase( i==91 ); /* AUTOINCREMENT */
+      testcase( i==92 ); /* TO */
+      testcase( i==93 ); /* IN */
+      testcase( i==94 ); /* CAST */
+      testcase( i==95 ); /* COLUMN */
+      testcase( i==96 ); /* COMMIT */
+      testcase( i==97 ); /* CONFLICT */
+      testcase( i==98 ); /* CROSS */
+      testcase( i==99 ); /* CURRENT_TIMESTAMP */
+      testcase( i==100 ); /* CURRENT_TIME */
+      testcase( i==101 ); /* PRIMARY */
+      testcase( i==102 ); /* DEFERRED */
+      testcase( i==103 ); /* DISTINCT */
+      testcase( i==104 ); /* IS */
+      testcase( i==105 ); /* DROP */
+      testcase( i==106 ); /* FAIL */
+      testcase( i==107 ); /* FROM */
+      testcase( i==108 ); /* FULL */
+      testcase( i==109 ); /* GLOB */
+      testcase( i==110 ); /* BY */
+      testcase( i==111 ); /* IF */
+      testcase( i==112 ); /* ISNULL */
+      testcase( i==113 ); /* ORDER */
+      testcase( i==114 ); /* RESTRICT */
+      testcase( i==115 ); /* RIGHT */
+      testcase( i==116 ); /* ROLLBACK */
+      testcase( i==117 ); /* ROW */
+      testcase( i==118 ); /* UNION */
+      testcase( i==119 ); /* USING */
+      testcase( i==120 ); /* VACUUM */
+      testcase( i==121 ); /* VIEW */
+      testcase( i==122 ); /* INITIALLY */
+      testcase( i==123 ); /* ALL */
+      testcase( i==124 ); /* FORECAST */
+      *pType = aCode[i];
+      break;
+    }
+  }
+  return n;
+}

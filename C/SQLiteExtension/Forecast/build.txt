@@ -1,0 +1,28 @@
+// for regular sqlite terminal application
+//top is production build and bottom is debug
+
+
+gcc -Os -I. -DSQLITE_THREADSAFE=0 -DSQLITE_ENABLE_FTS4 \
+   -DSQLITE_ENABLE_FTS5 -DSQLITE_ENABLE_JSON1 \
+   -DSQLITE_ENABLE_RTREE -DSQLITE_ENABLE_EXPLAIN_COMMENTS \
+   -DHAVE_USLEEP -DHAVE_READLINE \
+   shell.c sqlite3.c -ldl -lreadline -lncurses -o sqlite3
+
+
+
+
+gcc -g -I. -DSQLITE_THREADSAFE=0 -DSQLITE_ENABLE_FTS4 \
+   -DSQLITE_ENABLE_FTS5 -DSQLITE_ENABLE_JSON1 \
+   -DSQLITE_ENABLE_RTREE -DSQLITE_ENABLE_EXPLAIN_COMMENTS \
+   -DHAVE_USLEEP -DHAVE_READLINE \
+   shell.c sqlite3.c -ldl -lreadline -lncurses -o sqlite3
+   
+   
+   
+   
+// for signInProgram and forecastProgram
+// used with my website
+
+gcc -o run_signIn signInProgram.c
+
+gcc -o run_forecast forecastProgram.c

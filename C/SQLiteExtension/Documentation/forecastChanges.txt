@@ -1,0 +1,1214 @@
+Implementing the 'FORECAST' Keyword
+Steve Babcock
+
+Goal: augment the source code of both SQLite and PostGres (and possibly MySQL also) with a new keyword used in queries with both a function and a condition on that function. Syntax is improved by avoiding a sub-query, and initial findings show an increase in performance just with that. The end goal will be to create a process which checks every input to the function against a bad-input table before proceeding, and updating that table when the function's condition is not met.
+
+Updates to SQLite:
+
+// part of parse.c - every keyword is parsed into tokens (integers)
+#define TK_FORECAST                       129
+
+
+
+// part of tokenize.c - parses query from string into tokens. First place I started
+
+static int keywordCode(const char *z, int n, int *pType){
+  /* zText[] encodes 834 bytes of keywords in 554 bytes */
+  /*   REINDEXEDESCAPEACHECKEYBEFOREIGNOREGEXPLAINSTEADDATABASELECT       */
+  /*   ABLEFTHENDEFERRABLELSEXCEPTRANSACTIONATURALTERAISEXCLUSIVE         */
+  /*   XISTSAVEPOINTERSECTRIGGEREFERENCESCONSTRAINTOFFSETEMPORARY         */
+  /*   UNIQUERYWITHOUTERELEASEATTACHAVINGROUPDATEBEGINNERECURSIVE         */
+  /*   BETWEENOTNULLIKECASCADELETECASECOLLATECREATECURRENT_DATEDETACH     */
+  /*   IMMEDIATEJOINSERTMATCHPLANALYZEPRAGMABORTVALUESVIRTUALIMITWHEN     */
+  /*   WHERENAMEAFTEREPLACEANDEFAULTAUTOINCREMENTCASTCOLUMNCOMMIT         */
+  /*   CONFLICTCROSSCURRENT_TIMESTAMPRIMARYDEFERREDISTINCTDROPFAIL        */
+  /*   FROMFULLGLOBYIFISNULLORDERESTRICTRIGHTROLLBACKROWUNIONUSING        */
+  /*   VACUUMVIEWINITIALLYFORECAST                                        */
+  static const char zText[561] = {
+    'R','E','I','N','D','E','X','E','D','E','S','C','A','P','E','A','C','H',
+    'E','C','K','E','Y','B','E','F','O','R','E','I','G','N','O','R','E','G',
+    'E','X','P','L','A','I','N','S','T','E','A','D','D','A','T','A','B','A',
+    'S','E','L','E','C','T','A','B','L','E','F','T','H','E','N','D','E','F',
+    'E','R','R','A','B','L','E','L','S','E','X','C','E','P','T','R','A','N',
+    'S','A','C','T','I','O','N','A','T','U','R','A','L','T','E','R','A','I',
+    'S','E','X','C','L','U','S','I','V','E','X','I','S','T','S','A','V','E',
+    'P','O','I','N','T','E','R','S','E','C','T','R','I','G','G','E','R','E',
+    'F','E','R','E','N','C','E','S','C','O','N','S','T','R','A','I','N','T',
+    'O','F','F','S','E','T','E','M','P','O','R','A','R','Y','U','N','I','Q',
+    'U','E','R','Y','W','I','T','H','O','U','T','E','R','E','L','E','A','S',
+    'E','A','T','T','A','C','H','A','V','I','N','G','R','O','U','P','D','A',
+    'T','E','B','E','G','I','N','N','E','R','E','C','U','R','S','I','V','E',
+    'B','E','T','W','E','E','N','O','T','N','U','L','L','I','K','E','C','A',
+    'S','C','A','D','E','L','E','T','E','C','A','S','E','C','O','L','L','A',
+    'T','E','C','R','E','A','T','E','C','U','R','R','E','N','T','_','D','A',
+    'T','E','D','E','T','A','C','H','I','M','M','E','D','I','A','T','E','J',
+    'O','I','N','S','E','R','T','M','A','T','C','H','P','L','A','N','A','L',
+    'Y','Z','E','P','R','A','G','M','A','B','O','R','T','V','A','L','U','E',
+    'S','V','I','R','T','U','A','L','I','M','I','T','W','H','E','N','W','H',
+    'E','R','E','N','A','M','E','A','F','T','E','R','E','P','L','A','C','E',
+    'A','N','D','E','F','A','U','L','T','A','U','T','O','I','N','C','R','E',
+    'M','E','N','T','C','A','S','T','C','O','L','U','M','N','C','O','M','M',
+    'I','T','C','O','N','F','L','I','C','T','C','R','O','S','S','C','U','R',
+    'R','E','N','T','_','T','I','M','E','S','T','A','M','P','R','I','M','A',
+    'R','Y','D','E','F','E','R','R','E','D','I','S','T','I','N','C','T','D',
+    'R','O','P','F','A','I','L','F','R','O','M','F','U','L','L','G','L','O',
+    'B','Y','I','F','I','S','N','U','L','L','O','R','D','E','R','E','S','T',
+    'R','I','C','T','R','I','G','H','T','R','O','L','L','B','A','C','K','R',
+    'O','W','U','N','I','O','N','U','S','I','N','G','V','A','C','U','U','M',
+    'V','I','E','W','I','N','I','T','I','A','L','L','Y','F','O','R','E','C',
+    'A','S','T',
+  };
+  static const unsigned char aHash[127] = {
+      76, 105, 117,  74,   0,  45,   0,   0,  82,   0,  77,   0,   0,
+      42,  12,  78,  15,   0, 116,  85,  54, 112,   0,  19,   0,   0,
+     121,   0, 119, 115,   0,  22,  93,   0,   9,   0,   0,  70,  71,
+       0,  69,   6,   0,  48,  90, 102,   0, 118, 101,   0,   0,  44,
+       0, 103,  24,   0,  17,   0, 122,  53,  23,   0,   5, 110,  25,
+      96,   0,   0, 124, 106,  60, 123,  57,  28,  55,   0,  91,   125,
+     100,  26,   0,  99,   0,   0,   0,  95,  92,  97,  88, 109,  14,
+      39, 108,   0,  81,   0,  18,  89, 111,  32,   0, 120,  80, 113,
+      62,  46,  84,   0,   0,  94,  40,  59, 114,   0,  36,   0,   0,
+      29,   0,  86,  63,  64,   0,  20,  61,   0,  56,
+  };
+  static const unsigned char aNext[125] = {
+       0,   0,   0,   0,   4,   0,   0,   0,   0,   0,   0,   0,   0,
+       0,   2,   0,   0,   0,   0,   0,   0,  13,   0,   0,   0,   0,
+       0,   7,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+       0,   0,   0,   0,  33,   0,  21,   0,   0,   0,   0,   0,  50,
+       0,  43,   3,  47,   0,   0,   0,   0,  30,   0,  58,   0,  38,
+       0,   0,   0,   1,  66,   0,   0,  67,   0,  41,   0,   0,   0,
+       0,   0,   0,  49,  65,   0,   0,   0,   0,  31,  52,  16,  34,
+      10,   0,   0,   0,   0,   0,   0,   0,  11,  72,  79,   0,   8,
+       0, 104,  98,   0, 107,   0,  87,   0,  75,  51,   0,  27,  37,
+      73,  83,   0,  35,  68,   0,   0,   0,
+  };
+  static const unsigned char aLen[125] = {
+       7,   7,   5,   4,   6,   4,   5,   3,   6,   7,   3,   6,   6,
+       7,   7,   3,   8,   2,   6,   5,   4,   4,   3,  10,   4,   6,
+      11,   6,   2,   7,   5,   5,   9,   6,   9,   9,   7,  10,  10,
+       4,   6,   2,   3,   9,   4,   2,   6,   5,   7,   4,   5,   7,
+       6,   6,   5,   6,   5,   5,   9,   7,   7,   3,   2,   4,   4,
+       7,   3,   6,   4,   7,   6,  12,   6,   9,   4,   6,   5,   4,
+       7,   6,   5,   6,   7,   5,   4,   5,   6,   5,   7,   3,   7,
+      13,   2,   2,   4,   6,   6,   8,   5,  17,  12,   7,   8,   8,
+       2,   4,   4,   4,   4,   4,   2,   2,   6,   5,   8,   5,   8,
+       3,   5,   5,   6,   4,   9,   3,   8,
+  };
+  static const unsigned short int aOffset[125] = {
+       0,   2,   2,   8,   9,  14,  16,  20,  23,  25,  25,  29,  33,
+      36,  41,  46,  48,  53,  54,  59,  62,  65,  67,  69,  78,  81,
+      86,  91,  95,  96, 101, 105, 109, 117, 122, 128, 136, 142, 152,
+     159, 162, 162, 165, 167, 167, 171, 176, 179, 184, 184, 188, 192,
+     199, 204, 209, 212, 218, 221, 225, 234, 240, 240, 240, 243, 246,
+     250, 251, 255, 261, 265, 272, 278, 290, 296, 305, 307, 313, 318,
+     320, 327, 332, 337, 343, 349, 354, 358, 361, 367, 371, 378, 380,
+     387, 389, 391, 400, 404, 410, 416, 424, 429, 429, 445, 452, 459,
+     460, 467, 471, 475, 479, 483, 486, 488, 490, 496, 500, 508, 513,
+     521, 524, 529, 534, 540, 544, 549, 553,
+  };
+  static const unsigned char aCode[125] = {
+    TK_REINDEX,    TK_INDEXED,    TK_INDEX,      TK_DESC,       TK_ESCAPE,     
+    TK_EACH,       TK_CHECK,      TK_KEY,        TK_BEFORE,     TK_FOREIGN,    
+    TK_FOR,        TK_IGNORE,     TK_LIKE_KW,    TK_EXPLAIN,    TK_INSTEAD,    
+    TK_ADD,        TK_DATABASE,   TK_AS,         TK_SELECT,     TK_TABLE,      
+    TK_JOIN_KW,    TK_THEN,       TK_END,        TK_DEFERRABLE, TK_ELSE,       
+    TK_EXCEPT,     TK_TRANSACTION,TK_ACTION,     TK_ON,         TK_JOIN_KW,    
+    TK_ALTER,      TK_RAISE,      TK_EXCLUSIVE,  TK_EXISTS,     TK_SAVEPOINT,  
+    TK_INTERSECT,  TK_TRIGGER,    TK_REFERENCES, TK_CONSTRAINT, TK_INTO,       
+    TK_OFFSET,     TK_OF,         TK_SET,        TK_TEMP,       TK_TEMP,       
+    TK_OR,         TK_UNIQUE,     TK_QUERY,      TK_WITHOUT,    TK_WITH,       
+    TK_JOIN_KW,    TK_RELEASE,    TK_ATTACH,     TK_HAVING,     TK_GROUP,      
+    TK_UPDATE,     TK_BEGIN,      TK_JOIN_KW,    TK_RECURSIVE,  TK_BETWEEN,    
+    TK_NOTNULL,    TK_NOT,        TK_NO,         TK_NULL,       TK_LIKE_KW,    
+    TK_CASCADE,    TK_ASC,        TK_DELETE,     TK_CASE,       TK_COLLATE,    
+    TK_CREATE,     TK_CTIME_KW,   TK_DETACH,     TK_IMMEDIATE,  TK_JOIN,       
+    TK_INSERT,     TK_MATCH,      TK_PLAN,       TK_ANALYZE,    TK_PRAGMA,     
+    TK_ABORT,      TK_VALUES,     TK_VIRTUAL,    TK_LIMIT,      TK_WHEN,       
+    TK_WHERE,      TK_RENAME,     TK_AFTER,      TK_REPLACE,    TK_AND,        
+    TK_DEFAULT,    TK_AUTOINCR,   TK_TO,         TK_IN,         TK_CAST,       
+    TK_COLUMNKW,   TK_COMMIT,     TK_CONFLICT,   TK_JOIN_KW,    TK_CTIME_KW,   
+    TK_CTIME_KW,   TK_PRIMARY,    TK_DEFERRED,   TK_DISTINCT,   TK_IS,         
+    TK_DROP,       TK_FAIL,       TK_FROM,       TK_JOIN_KW,    TK_LIKE_KW,    
+    TK_BY,         TK_IF,         TK_ISNULL,     TK_ORDER,      TK_RESTRICT,   
+    TK_JOIN_KW,    TK_ROLLBACK,   TK_ROW,        TK_UNION,      TK_USING,      
+    TK_VACUUM,     TK_VIEW,       TK_INITIALLY,  TK_ALL,        TK_FORECAST,
+  };
+  int i, j;
+  const char *zKW;
+  if( n>=2 ){
+    i = ((charMap(z[0])*4) ^ (charMap(z[n-1])*3) ^ n) % 127;
+    for(i=((int)aHash[i])-1; i>=0; i=((int)aNext[i])-1){
+      if( aLen[i]!=n ) continue;
+      j = 0;
+      zKW = &zText[aOffset[i]];
+
+
+//the above function parses keywords into tokens. To determine if a word is a keyword or not, it is ran through this hash function...
+
+	  (charMap(z[0])*4) ^ (charMap(z[n-1])*3) ^ n) % 127
+
+//This uses the length, first and last letter of a test word. The resulting value allows rapid lookup of a potential keyword's length and offset by comparing the indexes from aHash to aLen and aOffset. Then the check is performing by integrating through zText with these values. Any collisions from the hash function are resolved with the aNext matrix. Though luckily 'FORECAST' hashes to 56, and no other keywords do. So an entry of 0 was made at FORECAST's index in aNext.
+
+
+
+
+
+
+
+// part of sqliteInt.h - adds property to Select definition. Most singular place where FORECAST lives
+struct Select {
+  ExprList *pEList;      /* The fields of the result */
+  u8 op;                 /* One of: TK_UNION TK_ALL TK_INTERSECT TK_EXCEPT */
+  LogEst nSelectRow;     /* Estimated number of result rows */
+  u32 selFlags;          /* Various SF_* values */
+  int iLimit, iOffset;   /* Memory registers holding LIMIT & OFFSET counters */
+#if SELECTTRACE_ENABLED
+  char zSelName[12];     /* Symbolic name of this SELECT use for debugging */
+#endif
+  int addrOpenEphm[2];   /* OP_OpenEphem opcodes related to this select */
+  SrcList *pSrc;         /* The FROM clause */
+  Expr *pWhere;          /* The WHERE clause */
+  ExprList *pGroupBy;    /* The GROUP BY clause */
+  Expr *pHaving;         /* The HAVING clause */
+  Expr *pForecast;	 /* The FORECAST clause */
+  ExprList *pOrderBy;    /* The ORDER BY clause */
+  Select *pPrior;        /* Prior select in a compound select statement */
+  Select *pNext;         /* Next select to the left in a compound */
+  Expr *pLimit;          /* LIMIT expression. NULL means not used. */
+  Expr *pOffset;         /* OFFSET expression. NULL means not used. */
+  With *pWith;           /* WITH clause attached to this select. Or NULL. */
+};
+
+// Whenever the parser detects a TK_FORECAST, it will then expect a condition or series of conditions similar to WHERE and HAVING. In fact, there's nothing significantly different about FORECAST in that regard. So I was able to use the existing Expr struct, and the same procedures to initialize, deallocate, resolve, etc. Later on in query processing, WHERE and HAVING diverge a bit, and at first I attempted to follow the WHERE path. In particular, by studying how the WITH keyword and subsequent subquery are handled. My thought was to take all these procedures, and smash them together in a more efficient manner. However, I ended up following the HAVING path which ended up being very simple... more on that later.
+
+
+
+// jargon lines of code in parse.c generated by lemon
+
+case 131: /* forecast_opt ::= FORECAST expr */ yytestcase(yyruleno==131);
+case 130: /* forecast_opt ::= */ yytestcase(yyruleno==130);
+
+// where the typical select is actually created
+
+yymsp[-9].minor.yy3 = sqlite3SelectNew(pParse,yymsp[-7].minor.yy14,yymsp[-6].minor.yy65,yymsp[-5].minor.yy132,yymsp[-4].minor.yy14,yymsp[-3].minor.yy132,yymsp[-2].minor.yy132,yymsp[-1].minor.yy14,yymsp[-8].minor.yy328,yymsp[0].minor.yy476.pLimit,yymsp[0].minor.yy476.pOffset);
+
+
+// parse.c is a large file (10,000+ LOC) and most of it is rather unreadable. I spent some time trying to manually edit FORECAST into this, but it proved to be a misguided effort. This whole file is generated by a lemon parser. The solution was to edit the input for this parser, run it, and swap out the old file. Interestingly with the new input, almost every LOC ended up being changed even though only a few dozen or so actually applied to FORECAST. So I had my doubts whether this was going to work or not the first time compiling it into the rest of SQLite. Luckily, it did in fact work, and to be honest I was actually ready to give up on the project if it didn't!
+
+
+
+// input for lemon parser
+
+%type forecast_opt {Expr*}
+%destructor forecast_opt {sqlite3ExprDelete(pParse->db, $$);}
+forecast_opt(A) ::= .                {A = 0;}
+forecast_opt(A) ::= FORECAST expr(X).  {A = X.pExpr;}
+
+oneselect(A) ::= SELECT(S) distinct(D) selcollist(W) from(X) where_opt(Y)
+                 groupby_opt(P) having_opt(Q) forecast_opt(F) orderby_opt(Z) limit_opt(L). 
+
+A = sqlite3SelectNew(pParse,W,X,Y,P,Q,F,Z,D,L.pLimit,L.pOffset);
+
+//above is the additional input for the lemon parser. It defines FORECAST as being an Expr struct, associates it with a deallocation function, specifies it can be NULL, lists it as a property of a SELECT struct, and defines it in this SELECT struct's initializer. 
+
+
+
+
+
+
+
+// part of select.c - actual execution of select. Edited down significantly for size reasons
+// two main sections have been included: GROUP BY queries and non-GROUP BY queries (FORECAST is also implemented in  an aggregate section, but that part is really big and redundant)
+
+
+
+SQLITE_PRIVATE int sqlite3Select(
+  Parse *pParse,         /* The parser context */
+  Select *p,             /* The SELECT statement being coded. */
+  SelectDest *pDest      /* What to do with the query results */
+){
+  int i, j;              /* Loop counters */
+  WhereInfo *pWInfo;     /* Return from sqlite3WhereBegin() */
+  Vdbe *v;               /* The virtual machine under construction */
+  int isAgg;             /* True for select lists like "count(*)" */
+  ExprList *pEList = 0;  /* List of columns to extract. */
+  SrcList *pTabList;     /* List of tables to select from */
+  Expr *pWhere;          /* The WHERE clause.  May be NULL */
+  ExprList *pGroupBy;    /* The GROUP BY clause.  May be NULL */
+  Expr *pHaving;         /* The HAVING clause.  May be NULL */
+  Expr *pForecast;      /* The FORECAST clause.  May be NULL */
+  int rc = 1;            /* Value to return from this function */
+  DistinctCtx sDistinct; /* Info on how to code the DISTINCT keyword */
+  SortCtx sSort;         /* Info on how to code the ORDER BY clause */
+  AggInfo sAggInfo;      /* Information used by aggregate queries */
+  int iEnd;              /* Address of the end of the query */
+  sqlite3 *db;           /* The database connection */
+
+
+  /* Various elements of the SELECT copied into local variables for
+  ** convenience */
+  pEList = p->pEList;
+  pWhere = p->pWhere;
+  pGroupBy = p->pGroupBy;
+  pHaving = p->pHaving;
+  pForecast = p->pForecast;
+  sDistinct.isTnct = (p->selFlags & SF_Distinct)!=0;
+
+
+
+
+//below is the section where GROUP BY type queries are processed. There is actually no reference to forecast here, but this is where I got the idea that allowed the keyword to function. FORECAST is most similar to HAVING in that conditions are meant to be applied after processing a record(s) as opposed to WHERE - towards beginning. I have marked the critical LOC of code below with 'CRITICAL LOC' because it is hard to find otherwise.
+
+
+  // to do - throw error if forecast and group by are used together
+
+  else{
+    /* This case when there exist aggregate functions or a GROUP BY clause
+    ** or both */
+    NameContext sNC;    /* Name context for processing aggregate information */
+    int iAMem;          /* First Mem address for storing current GROUP BY */
+    int iBMem;          /* First Mem address for previous GROUP BY */
+    int iUseFlag;       /* Mem address holding flag indicating that at least
+                        ** one row of the input to the aggregator has been
+                        ** processed */
+    int iAbortFlag;     /* Mem address which causes query abort if positive */
+    int groupBySort;    /* Rows come from source in GROUP BY order */
+    int addrEnd;        /* End of processing for this SELECT */
+    int sortPTab = 0;   /* Pseudotable used to decode sorting results */
+    int sortOut = 0;    /* Output register from the sorter */
+    int orderByGrp = 0; /* True if the GROUP BY and ORDER BY are the same */
+
+    /* Remove any and all aliases between the result set and the
+    ** GROUP BY clause.
+    */
+    if( pGroupBy ){
+      int k;                        /* Loop counter */
+      struct ExprList_item *pItem;  /* For looping over expression in a list */
+
+      for(k=p->pEList->nExpr, pItem=p->pEList->a; k>0; k--, pItem++){
+        pItem->u.x.iAlias = 0;
+      }
+      for(k=pGroupBy->nExpr, pItem=pGroupBy->a; k>0; k--, pItem++){
+        pItem->u.x.iAlias = 0;
+      }
+      assert( 66==sqlite3LogEst(100) );
+      if( p->nSelectRow>66 ) p->nSelectRow = 66;
+    }else{
+      assert( 0==sqlite3LogEst(1) );
+      p->nSelectRow = 0;
+    }
+
+    /* If there is both a GROUP BY and an ORDER BY clause and they are
+    ** identical, then it may be possible to disable the ORDER BY clause 
+    ** on the grounds that the GROUP BY will cause elements to come out 
+    ** in the correct order. It also may not - the GROUP BY might use a
+    ** database index that causes rows to be grouped together as required
+    ** but not actually sorted. Either way, record the fact that the
+    ** ORDER BY and GROUP BY clauses are the same by setting the orderByGrp
+    ** variable.  */
+    if( sqlite3ExprListCompare(pGroupBy, sSort.pOrderBy, -1)==0 ){
+      orderByGrp = 1;
+    }
+ 
+    /* Create a label to jump to when we want to abort the query */
+    addrEnd = sqlite3VdbeMakeLabel(v);
+
+    /* Convert TK_COLUMN nodes into TK_AGG_COLUMN and make entries in
+    ** sAggInfo for all TK_AGG_FUNCTION nodes in expressions of the
+    ** SELECT statement.
+    */
+    memset(&sNC, 0, sizeof(sNC));
+    sNC.pParse = pParse;
+    sNC.pSrcList = pTabList;
+    sNC.pAggInfo = &sAggInfo;
+    sAggInfo.mnReg = pParse->nMem+1;
+    sAggInfo.nSortingColumn = pGroupBy ? pGroupBy->nExpr : 0;
+    sAggInfo.pGroupBy = pGroupBy;
+    sqlite3ExprAnalyzeAggList(&sNC, pEList);
+    sqlite3ExprAnalyzeAggList(&sNC, sSort.pOrderBy);
+    if( pHaving ){
+      sqlite3ExprAnalyzeAggregates(&sNC, pHaving);
+    }
+    else if ( pForecast != 0) {
+      sqlite3ExprAnalyzeAggregates(&sNC, pForecast);
+    }
+    sAggInfo.nAccumulator = sAggInfo.nColumn;
+    for(i=0; i<sAggInfo.nFunc; i++){
+      assert( !ExprHasProperty(sAggInfo.aFunc[i].pExpr, EP_xIsSelect) );
+      sNC.ncFlags |= NC_InAggFunc;
+      sqlite3ExprAnalyzeAggList(&sNC, sAggInfo.aFunc[i].pExpr->x.pList);
+      sNC.ncFlags &= ~NC_InAggFunc;
+    }
+    sAggInfo.mxReg = pParse->nMem;
+    if( db->mallocFailed ) goto select_end;
+
+    /* Processing for aggregates with GROUP BY is very different and
+    ** much more complex than aggregates without a GROUP BY.
+    */
+    if( pGroupBy ){
+      KeyInfo *pKeyInfo;  /* Keying information for the group by clause */
+      int addr1;          /* A-vs-B comparision jump */
+      int addrOutputRow;  /* Start of subroutine that outputs a result row */
+      int regOutputRow;   /* Return address register for output subroutine */
+      int addrSetAbort;   /* Set the abort flag and return */
+      int addrTopOfLoop;  /* Top of the input loop */
+      int addrSortingIdx; /* The OP_OpenEphemeral for the sorting index */
+      int addrReset;      /* Subroutine for resetting the accumulator */
+      int regReset;       /* Return address register for reset subroutine */
+
+      /* If there is a GROUP BY clause we might need a sorting index to
+      ** implement it.  Allocate that sorting index now.  If it turns out
+      ** that we do not need it after all, the OP_SorterOpen instruction
+      ** will be converted into a Noop.  
+      */
+      sAggInfo.sortingIdx = pParse->nTab++;
+      pKeyInfo = keyInfoFromExprList(pParse, pGroupBy, 0, sAggInfo.nColumn);
+      addrSortingIdx = sqlite3VdbeAddOp4(v, OP_SorterOpen, 
+          sAggInfo.sortingIdx, sAggInfo.nSortingColumn, 
+          0, (char*)pKeyInfo, P4_KEYINFO);
+
+      /* Initialize memory locations used by GROUP BY aggregate processing
+      */
+      iUseFlag = ++pParse->nMem;
+      iAbortFlag = ++pParse->nMem;
+      regOutputRow = ++pParse->nMem;
+      addrOutputRow = sqlite3VdbeMakeLabel(v);
+      regReset = ++pParse->nMem;
+      addrReset = sqlite3VdbeMakeLabel(v);
+      iAMem = pParse->nMem + 1;
+      pParse->nMem += pGroupBy->nExpr;
+      iBMem = pParse->nMem + 1;
+      pParse->nMem += pGroupBy->nExpr;
+      sqlite3VdbeAddOp2(v, OP_Integer, 0, iAbortFlag);
+      VdbeComment((v, "clear abort flag"));
+      sqlite3VdbeAddOp2(v, OP_Integer, 0, iUseFlag);
+      VdbeComment((v, "indicate accumulator empty"));
+      sqlite3VdbeAddOp3(v, OP_Null, 0, iAMem, iAMem+pGroupBy->nExpr-1);
+
+      /* Begin a loop that will extract all source rows in GROUP BY order.
+      ** This might involve two separate loops with an OP_Sort in between, or
+      ** it might be a single loop that uses an index to extract information
+      ** in the right order to begin with.
+      */
+      sqlite3VdbeAddOp2(v, OP_Gosub, regReset, addrReset);
+      pWInfo = sqlite3WhereBegin(pParse, pTabList, pWhere, pGroupBy, 0,
+          WHERE_GROUPBY | (orderByGrp ? WHERE_SORTBYGROUP : 0), 0
+      );
+      if( pWInfo==0 ) goto select_end;
+      if( sqlite3WhereIsOrdered(pWInfo)==pGroupBy->nExpr ){
+        /* The optimizer is able to deliver rows in group by order so
+        ** we do not have to sort.  The OP_OpenEphemeral table will be
+        ** cancelled later because we still need to use the pKeyInfo
+        */
+        groupBySort = 0;
+      }else{
+        /* Rows are coming out in undetermined order.  We have to push
+        ** each row into a sorting index, terminate the first loop,
+        ** then loop over the sorting index in order to get the output
+        ** in sorted order
+        */
+        int regBase;
+        int regRecord;
+        int nCol;
+        int nGroupBy;
+
+        explainTempTable(pParse, 
+            (sDistinct.isTnct && (p->selFlags&SF_Distinct)==0) ?
+                    "DISTINCT" : "GROUP BY");
+
+        groupBySort = 1;
+        nGroupBy = pGroupBy->nExpr;
+        nCol = nGroupBy;
+        j = nGroupBy;
+        for(i=0; i<sAggInfo.nColumn; i++){
+          if( sAggInfo.aCol[i].iSorterColumn>=j ){
+            nCol++;
+            j++;
+          }
+        }
+        regBase = sqlite3GetTempRange(pParse, nCol);
+        sqlite3ExprCacheClear(pParse);
+        sqlite3ExprCodeExprList(pParse, pGroupBy, regBase, 0, 0);
+        j = nGroupBy;
+        for(i=0; i<sAggInfo.nColumn; i++){
+          struct AggInfo_col *pCol = &sAggInfo.aCol[i];
+          if( pCol->iSorterColumn>=j ){
+            int r1 = j + regBase;
+            sqlite3ExprCodeGetColumnToReg(pParse, 
+                               pCol->pTab, pCol->iColumn, pCol->iTable, r1);
+            j++;
+          }
+        }
+        regRecord = sqlite3GetTempReg(pParse);
+        sqlite3VdbeAddOp3(v, OP_MakeRecord, regBase, nCol, regRecord);
+        sqlite3VdbeAddOp2(v, OP_SorterInsert, sAggInfo.sortingIdx, regRecord);
+        sqlite3ReleaseTempReg(pParse, regRecord);
+        sqlite3ReleaseTempRange(pParse, regBase, nCol);
+        sqlite3WhereEnd(pWInfo);
+        sAggInfo.sortingIdxPTab = sortPTab = pParse->nTab++;
+        sortOut = sqlite3GetTempReg(pParse);
+        sqlite3VdbeAddOp3(v, OP_OpenPseudo, sortPTab, sortOut, nCol);
+        sqlite3VdbeAddOp2(v, OP_SorterSort, sAggInfo.sortingIdx, addrEnd);
+        VdbeComment((v, "GROUP BY sort")); VdbeCoverage(v);
+        sAggInfo.useSortingIdx = 1;
+        sqlite3ExprCacheClear(pParse);
+
+      }
+
+      /* If the index or temporary table used by the GROUP BY sort
+      ** will naturally deliver rows in the order required by the ORDER BY
+      ** clause, cancel the ephemeral table open coded earlier.
+      **
+      ** This is an optimization - the correct answer should result regardless.
+      ** Use the SQLITE_GroupByOrder flag with SQLITE_TESTCTRL_OPTIMIZER to 
+      ** disable this optimization for testing purposes.  */
+      if( orderByGrp && OptimizationEnabled(db, SQLITE_GroupByOrder) 
+       && (groupBySort || sqlite3WhereIsSorted(pWInfo))
+      ){
+        sSort.pOrderBy = 0;
+        sqlite3VdbeChangeToNoop(v, sSort.addrSortIndex);
+      }
+
+      /* Evaluate the current GROUP BY terms and store in b0, b1, b2...
+      ** (b0 is memory location iBMem+0, b1 is iBMem+1, and so forth)
+      ** Then compare the current GROUP BY terms against the GROUP BY terms
+      ** from the previous row currently stored in a0, a1, a2...
+      */
+      addrTopOfLoop = sqlite3VdbeCurrentAddr(v);
+      sqlite3ExprCacheClear(pParse);
+      if( groupBySort ){
+        sqlite3VdbeAddOp3(v, OP_SorterData, sAggInfo.sortingIdx,
+                          sortOut, sortPTab);
+      }
+      for(j=0; j<pGroupBy->nExpr; j++){
+        if( groupBySort ){
+          sqlite3VdbeAddOp3(v, OP_Column, sortPTab, j, iBMem+j);
+        }else{
+          sAggInfo.directMode = 1;
+          sqlite3ExprCode(pParse, pGroupBy->a[j].pExpr, iBMem+j);
+        }
+      }
+      sqlite3VdbeAddOp4(v, OP_Compare, iAMem, iBMem, pGroupBy->nExpr,
+                          (char*)sqlite3KeyInfoRef(pKeyInfo), P4_KEYINFO);
+      addr1 = sqlite3VdbeCurrentAddr(v);
+      sqlite3VdbeAddOp3(v, OP_Jump, addr1+1, 0, addr1+1); VdbeCoverage(v);
+
+      /* Generate code that runs whenever the GROUP BY changes.
+      ** Changes in the GROUP BY are detected by the previous code
+      ** block.  If there were no changes, this block is skipped.
+      **
+      ** This code copies current group by terms in b0,b1,b2,...
+      ** over to a0,a1,a2.  It then calls the output subroutine
+      ** and resets the aggregate accumulator registers in preparation
+      ** for the next GROUP BY batch.
+      */
+      sqlite3ExprCodeMove(pParse, iBMem, iAMem, pGroupBy->nExpr);
+      sqlite3VdbeAddOp2(v, OP_Gosub, regOutputRow, addrOutputRow);
+      VdbeComment((v, "output one row"));
+      sqlite3VdbeAddOp2(v, OP_IfPos, iAbortFlag, addrEnd); VdbeCoverage(v);
+      VdbeComment((v, "check abort flag"));
+      sqlite3VdbeAddOp2(v, OP_Gosub, regReset, addrReset);
+      VdbeComment((v, "reset accumulator"));
+
+      /* Update the aggregate accumulators based on the content of
+      ** the current row
+      */
+      sqlite3VdbeJumpHere(v, addr1);
+      updateAccumulator(pParse, &sAggInfo);
+      sqlite3VdbeAddOp2(v, OP_Integer, 1, iUseFlag);
+      VdbeComment((v, "indicate data in accumulator"));
+
+      /* End of the loop
+      */
+      if( groupBySort ){
+        sqlite3VdbeAddOp2(v, OP_SorterNext, sAggInfo.sortingIdx, addrTopOfLoop);
+        VdbeCoverage(v);
+      }else{
+        sqlite3WhereEnd(pWInfo);
+        sqlite3VdbeChangeToNoop(v, addrSortingIdx);
+      }
+
+      /* Output the final row of result
+      */
+      sqlite3VdbeAddOp2(v, OP_Gosub, regOutputRow, addrOutputRow);
+      VdbeComment((v, "output final row"));
+
+      /* Jump over the subroutines
+      */
+      sqlite3VdbeGoto(v, addrEnd);
+
+      /* Generate a subroutine that outputs a single row of the result
+      ** set.  This subroutine first looks at the iUseFlag.  If iUseFlag
+      ** is less than or equal to zero, the subroutine is a no-op.  If
+      ** the processing calls for the query to abort, this subroutine
+      ** increments the iAbortFlag memory location before returning in
+      ** order to signal the caller to abort.
+      */
+      addrSetAbort = sqlite3VdbeCurrentAddr(v);
+      sqlite3VdbeAddOp2(v, OP_Integer, 1, iAbortFlag);
+      VdbeComment((v, "set abort flag"));
+      sqlite3VdbeAddOp1(v, OP_Return, regOutputRow);
+      sqlite3VdbeResolveLabel(v, addrOutputRow);
+      addrOutputRow = sqlite3VdbeCurrentAddr(v);
+      sqlite3VdbeAddOp2(v, OP_IfPos, iUseFlag, addrOutputRow+2);
+      VdbeCoverage(v);
+      VdbeComment((v, "Groupby result generator entry point"));
+      sqlite3VdbeAddOp1(v, OP_Return, regOutputRow);
+      finalizeAggFunctions(pParse, &sAggInfo);
+
+      //CRITICAL LOC
+      // The selectInnerLoop function is the routine in charge of outputting the results of all the above
+      // But just before it is called, the pHaving Expr is injected into the pParse object in charge of that process
+      //We will see a similar selectInnerLoop at the end of non-GROUP BY queries, and implement a similar strategy
+
+      sqlite3ExprIfFalse(pParse, pHaving, addrOutputRow+1, SQLITE_JUMPIFNULL);
+
+
+      selectInnerLoop(pParse, p, p->pEList, -1, &sSort,
+                      &sDistinct, pDest,
+                      addrOutputRow+1, addrSetAbort);
+      sqlite3VdbeAddOp1(v, OP_Return, regOutputRow);
+      VdbeComment((v, "end groupby result generator"));
+
+      /* Generate a subroutine that will reset the group-by accumulator
+      */
+      sqlite3VdbeResolveLabel(v, addrReset);
+      resetAccumulator(pParse, &sAggInfo);
+      sqlite3VdbeAddOp1(v, OP_Return, regReset);
+     
+    } 
+
+
+  //Below is the non-GROUP BY section of SELECT execution
+  // Again the important line of code has been marked with 'CRITICAL LOC'
+
+
+  if( !isAgg && pGroupBy==0){
+    /* No aggregate functions and no GROUP BY clause */
+    u16 wctrlFlags = (sDistinct.isTnct ? WHERE_WANT_DISTINCT : 0);
+    assert( WHERE_USE_LIMIT==SF_FixedLimit );
+    wctrlFlags |= p->selFlags & SF_FixedLimit;
+
+    /* Begin the database scan. */
+    pWInfo = sqlite3WhereBegin(pParse, pTabList, pWhere, sSort.pOrderBy,
+                               p->pEList, wctrlFlags, p->nSelectRow);
+    if( pWInfo==0 ) goto select_end;
+    if( sqlite3WhereOutputRowCount(pWInfo) < p->nSelectRow ){
+      p->nSelectRow = sqlite3WhereOutputRowCount(pWInfo);
+    }
+    if( sDistinct.isTnct && sqlite3WhereIsDistinct(pWInfo) ){
+      sDistinct.eTnctType = sqlite3WhereIsDistinct(pWInfo);
+    }
+    if( sSort.pOrderBy ){
+      sSort.nOBSat = sqlite3WhereIsOrdered(pWInfo);
+      sSort.bOrderedInnerLoop = sqlite3WhereOrderedInnerLoop(pWInfo);
+      if( sSort.nOBSat==sSort.pOrderBy->nExpr ){
+        sSort.pOrderBy = 0;
+      }
+    }
+
+    /* If sorting index that was created by a prior OP_OpenEphemeral 
+    ** instruction ended up not being needed, then change the OP_OpenEphemeral
+    ** into an OP_Noop.
+    */
+    if( sSort.addrSortIndex>=0 && sSort.pOrderBy==0 ){
+      sqlite3VdbeChangeToNoop(v, sSort.addrSortIndex);
+    }
+
+    //CRITICAL LOC
+    //So I tried much more in depth implementations of the pFORECAST Expr but haven't been able to get them to work properly yet
+    //Ideally, I see FORECAST being somewhat in between how WHERE and HAVING work, and intend to revisit this issue
+    //Specifically, so that FORECAST uses a mechanism to check if an input has already failed its condition
+    //However, I think this is in the spirit of FORECAST and has already proven to make certain queries ran faster
+    //The following allows a normal query to have the general format...
+    //INPUT -> CONDITIONS -> PROCESSING (FUNCTIONS, ORDERING, DISTINCT) -> CONDITIONS -> OUTPUT
+    //Without this line of code, query needs to be broken into a subquery has the following flow...
+    //INPUT -> CONDITIONS -> PROCESSING -> (OUTPUT = INPUT of new SELECT function) -> CONDITIONS -> PROCESSING -> OUTPUT
+
+    if(pForecast != 0) sqlite3ExprIfFalse(pParse, pForecast, sqlite3WhereContinueLabel(pWInfo), SQLITE_JUMPIFNULL);
+
+
+
+    /* Use the standard inner loop. */
+    selectInnerLoop(pParse, p, pEList, -1, &sSort, &sDistinct, pDest,
+                    sqlite3WhereContinueLabel(pWInfo),
+                    sqlite3WhereBreakLabel(pWInfo));
+
+    /* End the database scan loop.
+    */
+    sqlite3WhereEnd(pWInfo);
+  }
+  
+
+
+//all the below sections are just several other places FORECAST needed to be added/referenced in some way. None of them are particularly interesting, and I did not include them all for that reason. Currently there are 52 total references to FORECAST in the new source code.
+
+
+
+// part of walker.c - begins resolving the parts of a query. ExprList doesn't resolve to true/false, but Expr does. Both are initially checked for validity in similar ways though. That is, neither can reference unknown columns for instance
+
+SQLITE_PRIVATE int sqlite3WalkSelectExpr(Walker *pWalker, Select *p){
+  if( sqlite3WalkExprList(pWalker, p->pEList) ) return WRC_Abort;
+  if( sqlite3WalkExpr(pWalker, p->pWhere) ) return WRC_Abort;
+  if( sqlite3WalkExprList(pWalker, p->pGroupBy) ) return WRC_Abort;
+  if( sqlite3WalkExpr(pWalker, p->pHaving) ) return WRC_Abort;
+  if( sqlite3WalkExpr(pWalker, p->pForecast) ) return WRC_Abort;
+  if( sqlite3WalkExprList(pWalker, p->pOrderBy) ) return WRC_Abort;
+  if( sqlite3WalkExpr(pWalker, p->pLimit) ) return WRC_Abort;
+  if( sqlite3WalkExpr(pWalker, p->pOffset) ) return WRC_Abort;
+  return WRC_Continue;
+}
+
+
+//part of expr.c - routine that sets max height of any expression in select statement
+
+static void heightOfSelect(Select *p, int *pnHeight){
+  if( p ){
+    heightOfExpr(p->pWhere, pnHeight);
+    heightOfExpr(p->pHaving, pnHeight);
+    heightOfExpr(p->pForecast, pnHeight);
+    heightOfExpr(p->pLimit, pnHeight);
+    heightOfExpr(p->pOffset, pnHeight);
+    heightOfExprList(p->pEList, pnHeight);
+    heightOfExprList(p->pGroupBy, pnHeight);
+    heightOfExprList(p->pOrderBy, pnHeight);
+    heightOfSelect(p->pPrior, pnHeight);
+  }
+}
+
+//part of expr.c - this routine creates a deep copy of a select 
+
+SQLITE_PRIVATE Select *sqlite3SelectDup(sqlite3 *db, Select *p, int flags){
+  Select *pNew, *pPrior;
+  assert( db!=0 );
+  if( p==0 ) return 0;
+  pNew = sqlite3DbMallocRawNN(db, sizeof(*p) );
+  if( pNew==0 ) return 0;
+  pNew->pEList = sqlite3ExprListDup(db, p->pEList, flags);
+  pNew->pSrc = sqlite3SrcListDup(db, p->pSrc, flags);
+  pNew->pWhere = sqlite3ExprDup(db, p->pWhere, flags);
+  pNew->pGroupBy = sqlite3ExprListDup(db, p->pGroupBy, flags);
+  pNew->pHaving = sqlite3ExprDup(db, p->pHaving, flags);
+  pNew->pForecast = sqlite3ExprDup(db, p->pForecast, flags);
+  pNew->pOrderBy = sqlite3ExprListDup(db, p->pOrderBy, flags);
+  pNew->op = p->op;
+  pNew->pPrior = pPrior = sqlite3SelectDup(db, p->pPrior, flags);
+  if( pPrior ) pPrior->pNext = pNew;
+  pNew->pNext = 0;
+  pNew->pLimit = sqlite3ExprDup(db, p->pLimit, flags);
+  pNew->pOffset = sqlite3ExprDup(db, p->pOffset, flags);
+  pNew->iLimit = 0;
+  pNew->iOffset = 0;
+  pNew->selFlags = p->selFlags & ~SF_UsesEphemeral;
+  pNew->addrOpenEphm[0] = -1;
+  pNew->addrOpenEphm[1] = -1;
+  pNew->nSelectRow = p->nSelectRow;
+  pNew->pWith = withDup(db, p->pWith);
+  sqlite3SelectSetName(pNew, p->zSelName);
+  return pNew;
+}
+
+
+// part of attach.c - finds database and table references to columns and expressions that are not explicit
+
+SQLITE_PRIVATE int sqlite3FixSelect(
+  DbFixer *pFix,       /* Context of the fixation */
+  Select *pSelect      /* The SELECT statement to be fixed to one database */
+){
+  while( pSelect ){
+    if( sqlite3FixExprList(pFix, pSelect->pEList) ){
+      return 1;
+    }
+    if( sqlite3FixSrcList(pFix, pSelect->pSrc) ){
+      return 1;
+    }
+    if( sqlite3FixExpr(pFix, pSelect->pWhere) ){
+      return 1;
+    }
+    if( sqlite3FixExprList(pFix, pSelect->pGroupBy) ){
+      return 1;
+    }
+    if( sqlite3FixExpr(pFix, pSelect->pHaving) ){
+      return 1;
+    }
+    if( sqlite3FixExpr(pFix, pSelect->pForecast) ){
+      return 1;
+    }
+    if( sqlite3FixExprList(pFix, pSelect->pOrderBy) ){
+      return 1;
+    }
+    if( sqlite3FixExpr(pFix, pSelect->pLimit) ){
+      return 1;
+    }
+    if( sqlite3FixExpr(pFix, pSelect->pOffset) ){
+      return 1;
+    }
+    pSelect = pSelect->pPrior;
+  }
+  return 0;
+}
+
+// part of select.c - completely deallocates memory of select structure
+
+static void clearSelect(sqlite3 *db, Select *p, int bFree){
+  while( p ){
+    Select *pPrior = p->pPrior;
+    sqlite3ExprListDelete(db, p->pEList);
+    sqlite3SrcListDelete(db, p->pSrc);
+    sqlite3ExprDelete(db, p->pWhere);
+    sqlite3ExprListDelete(db, p->pGroupBy);
+    sqlite3ExprDelete(db, p->pHaving);
+    sqlite3ExprDelete(db, p->pForecast);
+    sqlite3ExprListDelete(db, p->pOrderBy);
+    sqlite3ExprDelete(db, p->pLimit);
+    sqlite3ExprDelete(db, p->pOffset);
+    if( p->pWith ) sqlite3WithDelete(db, p->pWith);
+    if( bFree ) sqlite3DbFree(db, p);
+    p = pPrior;
+    bFree = 1;
+  }
+}
+
+
+// part of select.c - creates new select structure
+
+SQLITE_PRIVATE Select *sqlite3SelectNew(
+  Parse *pParse,        /* Parsing context */
+  ExprList *pEList,     /* which columns to include in the result */
+  SrcList *pSrc,        /* the FROM clause -- which tables to scan */
+  Expr *pWhere,         /* the WHERE clause */
+  ExprList *pGroupBy,   /* the GROUP BY clause */
+  Expr *pHaving,        /* the HAVING clause */
+  Expr *pForecast,	/* the FORECAST clause */
+  ExprList *pOrderBy,   /* the ORDER BY clause */
+  u32 selFlags,         /* Flag parameters, such as SF_Distinct */
+  Expr *pLimit,         /* LIMIT value.  NULL means not used */
+  Expr *pOffset         /* OFFSET value.  NULL means no offset */
+){
+  Select *pNew;
+  Select standin;
+  sqlite3 *db = pParse->db;
+  pNew = sqlite3DbMallocRawNN(db, sizeof(*pNew) );
+  if( pNew==0 ){
+    assert( db->mallocFailed );
+    pNew = &standin;
+  }
+  if( pEList==0 ){
+    pEList = sqlite3ExprListAppend(pParse, 0, sqlite3Expr(db,TK_ASTERISK,0));
+  }
+  pNew->pEList = pEList;
+  pNew->op = TK_SELECT;
+  pNew->selFlags = selFlags;
+  pNew->iLimit = 0;
+  pNew->iOffset = 0;
+#if SELECTTRACE_ENABLED
+  pNew->zSelName[0] = 0;
+#endif
+  pNew->addrOpenEphm[0] = -1;
+  pNew->addrOpenEphm[1] = -1;
+  pNew->nSelectRow = 0;
+  if( pSrc==0 ) pSrc = sqlite3DbMallocZero(db, sizeof(*pSrc));
+  pNew->pSrc = pSrc;
+  pNew->pWhere = pWhere;
+  pNew->pGroupBy = pGroupBy;
+  pNew->pHaving = pHaving;
+  pNew->pForecast = pForecast;
+  pNew->pOrderBy = pOrderBy;
+  pNew->pPrior = 0;
+  pNew->pNext = 0;
+  pNew->pLimit = pLimit;
+  pNew->pOffset = pOffset;
+  pNew->pWith = 0;
+  assert( pOffset==0 || pLimit!=0 || pParse->nErr>0 || db->mallocFailed!=0 );
+  if( db->mallocFailed ) {
+    clearSelect(db, pNew, pNew!=&standin);
+    pNew = 0;
+  }else{
+    assert( pNew->pSrc!=0 || pParse->nErr>0 );
+  }
+  assert( pNew!=&standin );
+  return pNew;
+}
+
+
+
+// part of select.c - part of routine that resolves nested select statements
+
+static void substSelect(
+  sqlite3 *db,         /* Report malloc errors here */
+  Select *p,           /* SELECT statement in which to make substitutions */
+  int iTable,          /* Table to be replaced */
+  ExprList *pEList,    /* Substitute values */
+  int doPrior          /* Do substitutes on p->pPrior too */
+){
+  SrcList *pSrc;
+  struct SrcList_item *pItem;
+  int i;
+  if( !p ) return;
+  do{
+    substExprList(db, p->pEList, iTable, pEList);
+    substExprList(db, p->pGroupBy, iTable, pEList);
+    substExprList(db, p->pOrderBy, iTable, pEList);
+    p->pHaving = substExpr(db, p->pHaving, iTable, pEList);
+    p->pForecast = substExpr(db, p->pForecast, iTable, pEList);
+    p->pWhere = substExpr(db, p->pWhere, iTable, pEList);
+    pSrc = p->pSrc;
+    assert( pSrc!=0 );
+    for(i=pSrc->nSrc, pItem=pSrc->a; i>0; i--, pItem++){
+      substSelect(db, pItem->pSelect, iTable, pEList, 1);
+      if( pItem->fg.isTabFunc ){
+        substExprList(db, pItem->u1.pFuncArg, iTable, pEList);
+      }
+    }
+  }while( doPrior && (p = p->pPrior)!=0 );
+}
+
+
+
+/*
+** Resolve names in the SELECT statement p and all of its descendants.
+*/
+static int resolveSelectStep(Walker *pWalker, Select *p){
+  NameContext *pOuterNC;  /* Context that contains this SELECT */
+  NameContext sNC;        /* Name context of this SELECT */
+  int isCompound;         /* True if p is a compound select */
+  int nCompound;          /* Number of compound terms processed so far */
+  Parse *pParse;          /* Parsing context */
+  int i;                  /* Loop counter */
+  ExprList *pGroupBy;     /* The GROUP BY clause */
+  Select *pLeftmost;      /* Left-most of SELECT of a compound */
+  sqlite3 *db;            /* Database connection */
+  
+
+  assert( p!=0 );
+  if( p->selFlags & SF_Resolved ){
+    return WRC_Prune;
+  }
+  pOuterNC = pWalker->u.pNC;
+  pParse = pWalker->pParse;
+  db = pParse->db;
+
+  /* Normally sqlite3SelectExpand() will be called first and will have
+  ** already expanded this SELECT.  However, if this is a subquery within
+  ** an expression, sqlite3ResolveExprNames() will be called without a
+  ** prior call to sqlite3SelectExpand().  When that happens, let
+  ** sqlite3SelectPrep() do all of the processing for this SELECT.
+  ** sqlite3SelectPrep() will invoke both sqlite3SelectExpand() and
+  ** this routine in the correct order.
+  */
+  if( (p->selFlags & SF_Expanded)==0 ){
+    sqlite3SelectPrep(pParse, p, pOuterNC);
+    return (pParse->nErr || db->mallocFailed) ? WRC_Abort : WRC_Prune;
+  }
+
+  isCompound = p->pPrior!=0;
+  nCompound = 0;
+  pLeftmost = p;
+  while( p ){
+    assert( (p->selFlags & SF_Expanded)!=0 );
+    assert( (p->selFlags & SF_Resolved)==0 );
+    p->selFlags |= SF_Resolved;
+
+    /* Resolve the expressions in the LIMIT and OFFSET clauses. These
+    ** are not allowed to refer to any names, so pass an empty NameContext.
+    */
+    memset(&sNC, 0, sizeof(sNC));
+    sNC.pParse = pParse;
+    if( sqlite3ResolveExprNames(&sNC, p->pLimit) ||
+        sqlite3ResolveExprNames(&sNC, p->pOffset) ){
+      return WRC_Abort;
+    }
+
+    /* If the SF_Converted flags is set, then this Select object was
+    ** was created by the convertCompoundSelectToSubquery() function.
+    ** In this case the ORDER BY clause (p->pOrderBy) should be resolved
+    ** as if it were part of the sub-query, not the parent. This block
+    ** moves the pOrderBy down to the sub-query. It will be moved back
+    ** after the names have been resolved.  */
+    if( p->selFlags & SF_Converted ){
+      Select *pSub = p->pSrc->a[0].pSelect;
+      assert( p->pSrc->nSrc==1 && p->pOrderBy );
+      assert( pSub->pPrior && pSub->pOrderBy==0 );
+      pSub->pOrderBy = p->pOrderBy;
+      p->pOrderBy = 0;
+    }
+  
+    /* Recursively resolve names in all subqueries
+    */
+    for(i=0; i<p->pSrc->nSrc; i++){
+      struct SrcList_item *pItem = &p->pSrc->a[i];
+      if( pItem->pSelect ){
+        NameContext *pNC;         /* Used to iterate name contexts */
+        int nRef = 0;             /* Refcount for pOuterNC and outer contexts */
+        const char *zSavedContext = pParse->zAuthContext;
+
+        /* Count the total number of references to pOuterNC and all of its
+        ** parent contexts. After resolving references to expressions in
+        ** pItem->pSelect, check if this value has changed. If so, then
+        ** SELECT statement pItem->pSelect must be correlated. Set the
+        ** pItem->fg.isCorrelated flag if this is the case. */
+        for(pNC=pOuterNC; pNC; pNC=pNC->pNext) nRef += pNC->nRef;
+
+        if( pItem->zName ) pParse->zAuthContext = pItem->zName;
+        sqlite3ResolveSelectNames(pParse, pItem->pSelect, pOuterNC);
+        pParse->zAuthContext = zSavedContext;
+        if( pParse->nErr || db->mallocFailed ) return WRC_Abort;
+
+        for(pNC=pOuterNC; pNC; pNC=pNC->pNext) nRef -= pNC->nRef;
+        assert( pItem->fg.isCorrelated==0 && nRef<=0 );
+        pItem->fg.isCorrelated = (nRef!=0);
+      }
+    }
+  
+    /* Set up the local name-context to pass to sqlite3ResolveExprNames() to
+    ** resolve the result-set expression list.
+    */
+    sNC.ncFlags = NC_AllowAgg;
+    sNC.pSrcList = p->pSrc;
+    sNC.pNext = pOuterNC;
+  
+    /* Resolve names in the result set. */
+    if( sqlite3ResolveExprListNames(&sNC, p->pEList) ) return WRC_Abort;
+  
+    /* If there are no aggregate functions in the result-set, and no GROUP BY 
+    ** expression, do not allow aggregates in any of the other expressions.
+    */
+    assert( (p->selFlags & SF_Aggregate)==0 );
+    pGroupBy = p->pGroupBy;
+    if( pGroupBy || (sNC.ncFlags & NC_HasAgg)!=0 ){
+      assert( NC_MinMaxAgg==SF_MinMaxAgg );
+      p->selFlags |= SF_Aggregate | (sNC.ncFlags&NC_MinMaxAgg);
+    }else{
+      sNC.ncFlags &= ~NC_AllowAgg;
+    }
+  
+    /* If a HAVING clause is present, then there must be a GROUP BY clause.
+    */
+    if( p->pHaving && !pGroupBy ){
+      sqlite3ErrorMsg(pParse, "a GROUP BY clause is required before HAVING");
+      return WRC_Abort;
+    }
+  
+    /* Add the output column list to the name-context before parsing the
+    ** other expressions in the SELECT statement. This is so that
+    ** expressions in the WHERE clause (etc.) can refer to expressions by
+    ** aliases in the result set.
+    **
+    ** Minor point: If this is the case, then the expression will be
+    ** re-evaluated for each reference to it.
+    */
+    sNC.pEList = p->pEList;
+    if( sqlite3ResolveExprNames(&sNC, p->pHaving) ) return WRC_Abort;
+    if( sqlite3ResolveExprNames(&sNC, p->pForecast) ) return WRC_Abort;
+    if( sqlite3ResolveExprNames(&sNC, p->pWhere) ) return WRC_Abort;
+
+    /* Resolve names in table-valued-function arguments */
+    for(i=0; i<p->pSrc->nSrc; i++){
+      struct SrcList_item *pItem = &p->pSrc->a[i];
+      if( pItem->fg.isTabFunc
+       && sqlite3ResolveExprListNames(&sNC, pItem->u1.pFuncArg) 
+      ){
+        return WRC_Abort;
+      }
+    }
+
+    /* The ORDER BY and GROUP BY clauses may not refer to terms in
+    ** outer queries 
+    */
+    sNC.pNext = 0;
+    sNC.ncFlags |= NC_AllowAgg;
+
+    /* If this is a converted compound query, move the ORDER BY clause from 
+    ** the sub-query back to the parent query. At this point each term
+    ** within the ORDER BY clause has been transformed to an integer value.
+    ** These integers will be replaced by copies of the corresponding result
+    ** set expressions by the call to resolveOrderGroupBy() below.  */
+    if( p->selFlags & SF_Converted ){
+      Select *pSub = p->pSrc->a[0].pSelect;
+      p->pOrderBy = pSub->pOrderBy;
+      pSub->pOrderBy = 0;
+    }
+
+    /* Process the ORDER BY clause for singleton SELECT statements.
+    ** The ORDER BY clause for compounds SELECT statements is handled
+    ** below, after all of the result-sets for all of the elements of
+    ** the compound have been resolved.
+    **
+    ** If there is an ORDER BY clause on a term of a compound-select other
+    ** than the right-most term, then that is a syntax error.  But the error
+    ** is not detected until much later, and so we need to go ahead and
+    ** resolve those symbols on the incorrect ORDER BY for consistency.
+    */
+    if( isCompound<=nCompound  /* Defer right-most ORDER BY of a compound */
+     && resolveOrderGroupBy(&sNC, p, p->pOrderBy, "ORDER")
+    ){
+      return WRC_Abort;
+    }
+    if( db->mallocFailed ){
+      return WRC_Abort;
+    }
+  
+    /* Resolve the GROUP BY clause.  At the same time, make sure 
+    ** the GROUP BY clause does not contain aggregate functions.
+    */
+    if( pGroupBy ){
+      struct ExprList_item *pItem;
+    
+      if( resolveOrderGroupBy(&sNC, p, pGroupBy, "GROUP") || db->mallocFailed ){
+        return WRC_Abort;
+      }
+      for(i=0, pItem=pGroupBy->a; i<pGroupBy->nExpr; i++, pItem++){
+        if( ExprHasProperty(pItem->pExpr, EP_Agg) ){
+          sqlite3ErrorMsg(pParse, "aggregate functions are not allowed in "
+              "the GROUP BY clause");
+          return WRC_Abort;
+        }
+      }
+    }
+
+    /* If this is part of a compound SELECT, check that it has the right
+    ** number of expressions in the select list. */
+    if( p->pNext && p->pEList->nExpr!=p->pNext->pEList->nExpr ){
+      sqlite3SelectWrongNumTermsError(pParse, p->pNext);
+      return WRC_Abort;
+    }
+
+    /* Advance to the next term of the compound
+    */
+    p = p->pPrior;
+    nCompound++;
+  }
+
+  /* Resolve the ORDER BY on a compound SELECT after all terms of
+  ** the compound have been resolved.
+  */
+  if( isCompound && resolveCompoundOrderBy(pParse, pLeftmost) ){
+    return WRC_Abort;
+  }
+
+  return WRC_Prune;
+}
+
+
+
+
+
+
+// part of treeview.c - nothing too interesting going on here. Routines to print out parse trees
+
+/*
+** Generate a human-readable description of a Select object.
+*/
+SQLITE_PRIVATE void sqlite3TreeViewSelect(TreeView *pView, const Select *p, u8 moreToFollow){
+  int n = 0;
+  int cnt = 0;
+  pView = sqlite3TreeViewPush(pView, moreToFollow);
+  if( p->pWith ){
+    sqlite3TreeViewWith(pView, p->pWith, 1);
+    cnt = 1;
+    sqlite3TreeViewPush(pView, 1);
+  }
+  do{
+    sqlite3TreeViewLine(pView, "SELECT%s%s (0x%p) selFlags=0x%x nSelectRow=%d",
+      ((p->selFlags & SF_Distinct) ? " DISTINCT" : ""),
+      ((p->selFlags & SF_Aggregate) ? " agg_flag" : ""), p, p->selFlags,
+      (int)p->nSelectRow
+    );
+    if( cnt++ ) sqlite3TreeViewPop(pView);
+    if( p->pPrior ){
+      n = 1000;
+    }else{
+      n = 0;
+      if( p->pSrc && p->pSrc->nSrc ) n++;
+      if( p->pWhere ) n++;
+      if( p->pGroupBy ) n++;
+      if( p->pHaving ) n++;
+      if( p->pForecast ) n++;
+      if( p->pOrderBy ) n++;
+      if( p->pLimit ) n++;
+      if( p->pOffset ) n++;
+    }
+    sqlite3TreeViewExprList(pView, p->pEList, (n--)>0, "result-set");
+    if( p->pSrc && p->pSrc->nSrc ){
+      int i;
+      pView = sqlite3TreeViewPush(pView, (n--)>0);
+      sqlite3TreeViewLine(pView, "FROM");
+      for(i=0; i<p->pSrc->nSrc; i++){
+        struct SrcList_item *pItem = &p->pSrc->a[i];
+        StrAccum x;
+        char zLine[100];
+        sqlite3StrAccumInit(&x, 0, zLine, sizeof(zLine), 0);
+        sqlite3XPrintf(&x, "{%d,*}", pItem->iCursor);
+        if( pItem->zDatabase ){
+          sqlite3XPrintf(&x, " %s.%s", pItem->zDatabase, pItem->zName);
+        }else if( pItem->zName ){
+          sqlite3XPrintf(&x, " %s", pItem->zName);
+        }
+        if( pItem->pTab ){
+          sqlite3XPrintf(&x, " tabname=%Q", pItem->pTab->zName);
+        }
+        if( pItem->zAlias ){
+          sqlite3XPrintf(&x, " (AS %s)", pItem->zAlias);
+        }
+        if( pItem->fg.jointype & JT_LEFT ){
+          sqlite3XPrintf(&x, " LEFT-JOIN");
+        }
+        sqlite3StrAccumFinish(&x);
+        sqlite3TreeViewItem(pView, zLine, i<p->pSrc->nSrc-1); 
+        if( pItem->pSelect ){
+          sqlite3TreeViewSelect(pView, pItem->pSelect, 0);
+        }
+        if( pItem->fg.isTabFunc ){
+          sqlite3TreeViewExprList(pView, pItem->u1.pFuncArg, 0, "func-args:");
+        }
+        sqlite3TreeViewPop(pView);
+      }
+      sqlite3TreeViewPop(pView);
+    }
+    if( p->pWhere ){
+      sqlite3TreeViewItem(pView, "WHERE", (n--)>0);
+      sqlite3TreeViewExpr(pView, p->pWhere, 0);
+      sqlite3TreeViewPop(pView);
+    }
+    if( p->pGroupBy ){
+      sqlite3TreeViewExprList(pView, p->pGroupBy, (n--)>0, "GROUPBY");
+    }
+    if( p->pHaving ){
+      sqlite3TreeViewItem(pView, "HAVING", (n--)>0);
+      sqlite3TreeViewExpr(pView, p->pHaving, 0);
+      sqlite3TreeViewPop(pView);
+    }
+    if( p->pForecast ){
+      sqlite3TreeViewItem(pView, "FORECAST", (n--)>0);
+      sqlite3TreeViewExpr(pView, p->pForecast, 0);
+      sqlite3TreeViewPop(pView);
+    }
+    if( p->pOrderBy ){
+      sqlite3TreeViewExprList(pView, p->pOrderBy, (n--)>0, "ORDERBY");
+    }
+    if( p->pLimit ){
+      sqlite3TreeViewItem(pView, "LIMIT", (n--)>0);
+      sqlite3TreeViewExpr(pView, p->pLimit, 0);
+      sqlite3TreeViewPop(pView);
+    }
+    if( p->pOffset ){
+      sqlite3TreeViewItem(pView, "OFFSET", (n--)>0);
+      sqlite3TreeViewExpr(pView, p->pOffset, 0);
+      sqlite3TreeViewPop(pView);
+    }
+    if( p->pPrior ){
+      const char *zOp = "UNION";
+      switch( p->op ){
+        case TK_ALL:         zOp = "UNION ALL";  break;
+        case TK_INTERSECT:   zOp = "INTERSECT";  break;
+        case TK_EXCEPT:      zOp = "EXCEPT";     break;
+      }
+      sqlite3TreeViewItem(pView, zOp, 1);
+    }
+    p = p->pPrior;
+  }while( p!=0 );
+  sqlite3TreeViewPop(pView);
+}
+
+
+
