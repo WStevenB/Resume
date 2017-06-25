@@ -14,14 +14,14 @@ namespace SelfTask {
             InitializeComponent();
         }
 
-		//occurs when user presses left button on mouse
-		//drawing will only occur when isDown is true
+	//occurs when user presses left button on mouse
+	//drawing will only occur when isDown is true
         private void SignaturePanel_MouseDown(object sender, MouseEventArgs e) {
             if (e.Button == System.Windows.Forms.MouseButtons.Left) isDown = true;
         }
 
-		//occurs when user moves mouse
-		//will record most recent location of mouse, and call drawing function
+	//occurs when user moves mouse
+	//will record most recent location of mouse, and call drawing function
         private void SignaturePanel_MouseMove(object sender, MouseEventArgs e) {
             if (isDown) {
                 Point point = SignaturePanel.PointToClient(Cursor.Position);
@@ -39,8 +39,8 @@ namespace SelfTask {
             }
         }
 		
-		//draws a line on user's screen between most recent mouse position, and second most recent
-		//then updates second most recent position
+	//draws a line on user's screen between most recent mouse position, and second most recent
+	//then updates second most recent position
         public void DrawLine() {
             if (oldX != -1 && oldY != -1) {
                 Graphics g = SignaturePanel.CreateGraphics();
@@ -52,11 +52,11 @@ namespace SelfTask {
         }
 
 
-		//takes a screenshot of user's computer at the location where the signature and details about hours/name are
-		//then encodes that into .jpg format and loads it into a byte array
-		//finally a new record is made in the Signature database table
-		//the first three fields are populated from the controlling form (Name, WeekStart, Hours)
-		//the last field is the byte array representing the screenshot taken earlier
+	//takes a screenshot of user's computer at the location where the signature and details about hours/name are
+	//then encodes that into .jpg format and loads it into a byte array
+	//finally a new record is made in the Signature database table
+	//the first three fields are populated from the controlling form (Name, WeekStart, Hours)
+	//the last field is the byte array representing the screenshot taken earlier
 		
         private void SubmitButton_Click(object sender, EventArgs e) {
             Rectangle screen = RectangleToScreen(this.ClientRectangle); 
@@ -103,7 +103,7 @@ namespace SelfTask {
             this.Hide();
         }
   
-  		//used to parameterize sql commands in an effort to prevent injection attacks
+  	//used to parameterize sql commands in an effort to prevent injection attacks
         private void insertParameter(MySqlCommand com, string name, DbType type, object val) {
             IDataParameter para = com.CreateParameter();
             para.ParameterName = name;
@@ -112,7 +112,7 @@ namespace SelfTask {
             com.Parameters.Add(para);
         }
    
-		//finds proper codec for desired image format
+	//finds proper codec for desired image format
         private ImageCodecInfo GetEncoder(ImageFormat format) {
             ImageCodecInfo[] codecs = ImageCodecInfo.GetImageDecoders();
             foreach (ImageCodecInfo codec in codecs)
@@ -121,7 +121,7 @@ namespace SelfTask {
             return null;
         }
 
-		//sets compression properties of codec
+	//sets compression properties of codec
         private EncoderParameters getParameters() {
             System.Drawing.Imaging.Encoder myEncoder = System.Drawing.Imaging.Encoder.Quality;
             EncoderParameters myEncoderParameters = new EncoderParameters(1);
@@ -130,7 +130,7 @@ namespace SelfTask {
             return myEncoderParameters;
         }
 
-		//warns user if they are about to sign for less than a full week
+	//warns user if they are about to sign for less than a full week
         private void Signature_Load(object sender, EventArgs e) {
             if (hours < 40) {
                 if (!MessageBox.Show("Warning - you are about the sign off on less than 40 hours this period.", "Confirm", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes) {
