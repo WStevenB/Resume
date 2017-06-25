@@ -30,8 +30,8 @@ namespace SelfTask {
             }
         }
 
-		//occurs when user lets go of left mouse button
-		//resets drawing variables
+	//occurs when user lets go of left mouse button
+	//resets drawing variables
         private void SignaturePanel_MouseUp(object sender, MouseEventArgs e) {
             if (e.Button == System.Windows.Forms.MouseButtons.Left) {
                 isDown = false;
