@@ -47,14 +47,15 @@ WHERE Num.C = 0;
 (c) Find the Sid and Sname of each students who has at least two majors and who only bought books that were cited by other books.
 
 WITH sq AS (
-SELECT S.Sid, S.Sname
-FROM Student S
-WHERE (SELECT COUNT(1) FROM (SELECT M.Sid FROM Major M WHERE M.Sid = S.Sid) AS sq) > 1),
+     SELECT S.Sid, S.Sname
+     FROM Student S
+     WHERE (SELECT COUNT(1) FROM (SELECT M.Sid FROM Major M WHERE M.Sid = S.Sid) AS sq) > 1),
 sq3 AS (SELECT Sid, Sname, CitedBookNo FROM sq, Cites),
 sq4 AS (SELECT sq.Sid, sq.Sname, Buys.BookNo
-FROM sq, Buys
-WHERE sq.Sid = Buys.Sid),
+     FROM sq, Buys
+     WHERE sq.Sid = Buys.Sid),
 sq5 AS (SELECT * FROM sq4 EXCEPT SELECT * FROM sq3)
+
 SELECT sq.Sid, sq.Sname
 FROM sq
 WHERE (SELECT COUNT(1) FROM (SELECT sq5.Sid FROM sq5 WHERE sq5.Sid = sq.Sid) AS sq6) = 0;
@@ -78,8 +79,9 @@ WHERE S.Sid = SQ.Sid;
 (e) Find the triples (s1,s2,b) where s1 and s2 are different Sid’s of students and b is the BookNo of a book they both bought.
 
 WITH sq AS(
-SELECT S.Sid AS id, (SELECT COUNT(1) FROM (SELECT BookNo FROM Buys WHERE Buys.Sid = S.Sid) AS sq6) AS num
-FROM Student S)
+     SELECT S.Sid AS id, (SELECT COUNT(1) FROM (SELECT BookNo FROM Buys WHERE Buys.Sid = S.Sid) AS sq6) AS num
+     FROM Student S)
+     
 SELECT DISTINCT B1.Sid, B2.Sid
 FROM Buys B1, Buys B2
 WHERE B1.Sid != B2.Sid
@@ -93,8 +95,9 @@ ORDER BY B1.Sid, B2.Sid;
 (f) Find the tuples (s1,s2) where s1 and s2 are different Sid’s of students such that student s1 bought at least as many books as the number of books bought by student s2.
 
 WITH sq AS(
-SELECT COUNT(Sid)-1 AS num
-FROM Student)
+     SELECT COUNT(Sid)-1 AS num
+     FROM Student)
+     
 SELECT DISTINCT B1.BookNo
 FROM Buys B1, LATERAL (SELECT COUNT(BookNo) AS pNum FROM Buys WHERE BookNo = B1.BookNo) AS C
 WHERE (SELECT num FROM sq) = C.pNum;
