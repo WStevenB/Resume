@@ -51,7 +51,8 @@ WITH sq AS (
      FROM Student S
      WHERE (SELECT COUNT(1) FROM (SELECT M.Sid FROM Major M WHERE M.Sid = S.Sid) AS sq) > 1),
 sq3 AS (SELECT Sid, Sname, CitedBookNo FROM sq, Cites),
-sq4 AS (SELECT sq.Sid, sq.Sname, Buys.BookNo
+sq4 AS (
+     SELECT sq.Sid, sq.Sname, Buys.BookNo
      FROM sq, Buys
      WHERE sq.Sid = Buys.Sid),
 sq5 AS (SELECT * FROM sq4 EXCEPT SELECT * FROM sq3)
