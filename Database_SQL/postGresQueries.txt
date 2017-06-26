@@ -1,0 +1,251 @@
+These solutions are written for PostGres
+To load the database backup file, create a new database with pgAdmin.
+Then right click that database, and select 'RESTORE'
+Navigate to the file resumeDB, you may need to specify 'All file types' to select it
+The functions below are already created, so you may simply go ahead with queries using them
+
+Instructions from assignment 4 - Advanced Database Concepts
+In your solutions you are NOT permitted to use the EXISTS, NOT EXISTS, IN, NOT IN, ALL, ANY, or SOME set predicates. 
+You are permitted to use the UNION, EXCEPT, and INTERSECT operations where necessary.
+
+
+(a) For each student determine the number of books bought by that student whose price is in the range [$20,$40]. 
+(Notice that it is possible that a student does not buy any such book. For such a student you should report the number 0 in your answer.)
+
+CREATE FUNCTION numbersOfBooksBoughtInPriceRange(Sid1 INTEGER, LowerPrice INTEGER, UpperPrice INTEGER)
+RETURNS BIGINT AS
+$func$
+
+SELECT COUNT(B.BookNo)
+FROM Buys B, Book Bo
+WHERE B.Sid = Sid1
+AND B.BookNo = Bo.BookNo
+AND Bo.Price >= LowerPrice
+AND Bo.Price <= UpperPrice;
+
+$func$ LANGUAGE SQL;
+
+
+SELECT S.Sid, numbersOfBooksBoughtInPriceRange(S.Sid, 20, 40) AS C
+FROM Student S;
+
+
+
+
+
+
+(b) Find the bookno of each book that is not cited by any other book.
+
+SELECT BookNo
+FROM Book B, LATERAL (SELECT COUNT(CitedBookNo) AS C FROM Cites WHERE CitedBookNo = B.BookNo) AS Num
+WHERE Num.C = 0;
+
+
+
+
+
+(c) Find the Sid and Sname of each students who has at least two majors and who only bought books that were cited by other books.
+
+WITH sq AS (
+SELECT S.Sid, S.Sname
+FROM Student S
+WHERE (SELECT COUNT(1) FROM (SELECT M.Sid FROM Major M WHERE M.Sid = S.Sid) AS sq) > 1),
+sq3 AS (SELECT Sid, Sname, CitedBookNo FROM sq, Cites),
+sq4 AS (SELECT sq.Sid, sq.Sname, Buys.BookNo
+FROM sq, Buys
+WHERE sq.Sid = Buys.Sid),
+sq5 AS (SELECT * FROM sq4 EXCEPT SELECT * FROM sq3)
+SELECT sq.Sid, sq.Sname
+FROM sq
+WHERE (SELECT COUNT(1) FROM (SELECT sq5.Sid FROM sq5 WHERE sq5.Sid = sq.Sid) AS sq6) = 0;
+
+
+
+
+
+(d) Find the sid and major of each student who bought at least one book, but who did not buy any books that cost less than $30.
+
+SELECT Student.Sid, Major.Major
+FROM Student LEFT JOIN Major ON Student.Sid = Major.Sid
+EXCEPT
+SELECT S.Sid, Major.Major
+FROM Student S LEFT JOIN Major ON S.Sid = Major.Sid, LATERAL (SELECT Student.Sid FROM Student, Buys, Book WHERE S.Sid = Buys.Sid AND Buys.BookNo = Book.BookNo AND Book.Price < 30) AS SQ
+WHERE S.Sid = SQ.Sid;
+
+
+
+
+(e) Find the triples (s1,s2,b) where s1 and s2 are different Sid’s of students and b is the BookNo of a book they both bought.
+
+WITH sq AS(
+SELECT S.Sid AS id, (SELECT COUNT(1) FROM (SELECT BookNo FROM Buys WHERE Buys.Sid = S.Sid) AS sq6) AS num
+FROM Student S)
+SELECT DISTINCT B1.Sid, B2.Sid
+FROM Buys B1, Buys B2
+WHERE B1.Sid != B2.Sid
+AND (SELECT num FROM sq WHERE id = B1.Sid) >= (SELECT num FROM sq WHERE id = B2.Sid)
+ORDER BY B1.Sid, B2.Sid;
+
+
+
+
+
+(f) Find the tuples (s1,s2) where s1 and s2 are different Sid’s of students such that student s1 bought at least as many books as the number of books bought by student s2.
+
+WITH sq AS(
+SELECT COUNT(Sid)-1 AS num
+FROM Student)
+SELECT DISTINCT B1.BookNo
+FROM Buys B1, LATERAL (SELECT COUNT(BookNo) AS pNum FROM Buys WHERE BookNo = B1.BookNo) AS C
+WHERE (SELECT num FROM sq) = C.pNum;
+
+
+
+
+
+
+The following two problems use PLPGSQL to employ loops and conditions with SQL
+
+
+
+
+(1) Consider the following relational schema. A tuple (pid, cpid) is in Parent Child if pid is a parent of child cid.
+     Parent_Child
+     -----------
+     |PId | SId |
+     ------------
+You can assume that the domain of PId and SId is INTEGER.
+Write a Postgres program that computes the pairs (id1,id2) such that id1 and id2 belong to the same generation in the Parent-Child relation and id1 ̸= id2. 
+(id1 and id2 belong to the same generation if their distance to the root in the Parent-Child relation is the same.)
+
+
+
+CREATE OR REPLACE FUNCTION Generations()
+
+RETURNS TABLE(Pid INTEGER, Cpid INTEGER) AS
+
+$func$
+
+BEGIN
+
+EXECUTE 'CREATE TABLE OutTable (Pid INTEGER, Cpid INTEGER)';
+EXECUTE 'WITH sq AS (SELECT Pid FROM Parent_Child EXCEPT SELECT Sid FROM Parent_Child) INSERT INTO OutTable SELECT sq1.Pid, sq2.Pid FROM sq sq1, sq sq2 WHERE sq1.Pid != sq2.Pid';
+EXECUTE 'CREATE TABLE TempParents AS SELECT DISTINCT Pid FROM OutTable';
+
+WHILE (EXISTS (SELECT Sid FROM Parent_Child, TempParents WHERE Parent_Child.Pid = TempParents.Pid)) LOOP
+
+EXECUTE 'CREATE TABLE TempChildren AS SELECT Sid FROM Parent_Child, TempParents WHERE Parent_Child.Pid = TempParents.Pid';
+EXECUTE 'INSERT INTO OutTable SELECT sq1.Sid, sq2.Sid FROM TempChildren sq1, TempChildren sq2 WHERE sq1.Sid != sq2.Sid';
+EXECUTE 'DROP TABLE TempParents';
+EXECUTE 'CREATE TABLE TempParents AS SELECT Sid AS Pid FROM TempChildren';
+EXECUTE 'DROP TABLE TempChildren';
+
+END LOOP;
+
+EXECUTE 'DROP TABLE TempParents';
+RETURN QUERY (SELECT * FROM OutTable);
+EXECUTE 'DROP TABLE OutTable';
+
+END;
+
+
+$func$ LANGUAGE PLPGSQL;
+
+
+
+SELECT * FROM Generations();
+
+
+
+
+
+
+
+
+
+
+
+
+(2) Suppose you have a weighted directed graph G = (V, E) stored in a ternary table named Graph in your database. 
+A triple (n, m, w) in Graph indicates that G has an edge (n, m) where n is the source, m is the target, and w is the edge’s weight. 
+(In this problem, we will assume that each edge-weight is a positive integer.)
+Implement Dijkstra’s Algorithm as a Postgres function Dijkstra to compute the shortest path lengths 
+(i.e., the distance) from some input node n in G to all other nodes in G. 
+Dijkstra should accept an argument n, the source node, and output a table Paths which stores the pairs (n, dm) where dm is the shortest distance from n to m. 
+To test your procedure, you can use the graph shown in Figure 2. 
+The corresponding table structure for G is given as the following Graph table.
+ 
+Source  Target  Weight
+0		1		2	
+0		4		10
+1		2		3
+1		4		7
+2		3		4
+3		4		5
+4		2		6
+
+Hint: You can find the details of Dijkstra’s Algorithm in the attached pdf document, but you are not required to exactly follow the pseudocode.
+When you issue CALL Dijkstra(0), you should obtain the following Paths table:
+
+Target  Distance
+0		0
+1		2
+2		5
+3		9
+4		9
+
+
+
+
+
+
+CREATE OR REPLACE FUNCTION Dijkstra(s INTEGER)
+
+RETURNS TABLE(Target INTEGER, Distance INTEGER) AS
+
+$func$
+
+DECLARE rec RECORD;
+
+BEGIN
+
+EXECUTE 'CREATE TABLE OutTable AS SELECT Source AS Target, 0 AS Distance FROM (SELECT DISTINCT Source FROM Cities UNION (SELECT DISTINCT Target FROM Cities EXCEPT SELECT Source FROM Cities)) AS sq';
+EXECUTE 'CREATE TABLE OrderedTravels AS SELECT * FROM Cities WHERE Source = '||s||';';
+
+EXECUTE 'CREATE TABLE CurrentCities (Source INTEGER)';
+EXECUTE 'INSERT INTO CurrentCities SELECT Target FROM Cities WHERE Source = '||s||';';
+WHILE (EXISTS (SELECT * FROM Cities EXCEPT SELECT * FROM OrderedTravels)) LOOP
+
+EXECUTE 'INSERT INTO OrderedTravels SELECT * FROM Cities WHERE Source IN (SELECT Source FROM CurrentCities)';
+EXECUTE 'CREATE TABLE TempCities AS SELECT * FROM CurrentCities';
+EXECUTE 'DROP TABLE CurrentCities';
+EXECUTE 'CREATE TABLE CurrentCities AS SELECT Target AS Source FROM Cities WHERE Source IN (SELECT * FROM TempCities)';
+EXECUTE 'DROP TABLE TempCities';
+
+END LOOP;
+EXECUTE 'DROP TABLE CurrentCities';
+
+FOR rec IN (SELECT * FROM OrderedTravels) LOOP
+
+IF (((SELECT O.Distance FROM OutTable O WHERE O.Target = rec.Target) = 0) OR (SELECT O.Distance + rec.Weight FROM OutTable O WHERE O.Target = rec.Source) < (SELECT O.Distance FROM OutTable O WHERE O.Target = rec.Target))  THEN
+EXECUTE 'UPDATE OutTable SET Distance = (SELECT O.Distance + '||rec.Weight||' FROM OutTable O WHERE O.Target = '||rec.Source||') WHERE Target = '||rec.Target||';';
+END IF;
+
+END LOOP;
+
+RETURN QUERY (SELECT * FROM OutTable ORDER BY Target);
+EXECUTE 'DROP TABLE OrderedTravels';
+EXECUTE 'DROP TABLE OutTable';
+
+END;
+
+
+$func$ LANGUAGE PLPGSQL;
+
+
+
+
+SELECT * FROM Dijkstra(0);
+
+
+
