@@ -1,0 +1,49 @@
+table {
+	table-layout: fixed; 
+	border: 1px solid grey;
+    border-collapse: collapse;
+    padding: 5px;
+}
+
+table, th , td {
+    border: 1px solid grey;
+    border-collapse: collapse;
+    padding: 5px;
+}     
+
+td {
+	min-width: 100px;
+	max-width: 350px;
+}
+
+.tWrapper {
+	max-height: 350px;
+	overflow: auto;
+}
+
+
+
+
+#container { display:block; }
+
+@media only screen and (min-device-width:320px) and (max-device-width: 568px) and (orientation:portrait) {
+
+  #container {
+
+    height: 100vw;
+
+    -webkit-transform: rotate(90deg);
+
+    -moz-transform: rotate(90deg);
+
+    -o-transform: rotate(90deg);
+
+    -ms-transform: rotate(90deg);
+
+    transform: rotate(90deg);
+
+  }
+
+}
+
+

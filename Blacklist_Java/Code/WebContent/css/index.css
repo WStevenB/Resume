@@ -1,0 +1,185 @@
+body {
+  height: 100%;
+  background: url('../images/dark-hardback.png') rgb(255, 255, 255);
+  background-size: auto auto;
+  background-position: left top;
+  font: 400 1.313em/1.38 Helvetica;
+  color: rgb(19, 19, 19);
+}
+
+.container {
+  position: absolute;
+  left: 0;
+  right: 0;
+  width: 40.3333333333%;
+  min-width: 350px;
+  height: 65px;
+  margin: 0 auto;
+}
+
+.container .text {
+  top: 10px;
+  min-height: 31px;
+  border-radius: 2px;
+  font-size: 1em;
+  color: rgb(19, 19, 19);
+}
+
+.element {
+  position: absolute;
+  top: 25px;
+  left: 0;
+  right: 0;
+  width: 66.3333333333%;
+  height: 735px;
+  margin: 0 auto;
+  border: 3px solid rgb(95, 127, 255);
+  border-radius: 25px;
+  background: rgb(255, 255, 255);
+  background: -webkit-linear-gradient(0deg, rgb(255, 255, 255) 0%, rgb(204, 210, 232) 53.095238095238095%, rgb(255, 255, 255) 99.76190476190476%) rgb(222, 222, 222);
+  background:    -moz-linear-gradient(0deg, rgb(255, 255, 255) 0%, rgb(204, 210, 232) 53.095238095238095%, rgb(255, 255, 255) 99.76190476190476%) rgb(222, 222, 222);
+  background:      -o-linear-gradient(0deg, rgb(255, 255, 255) 0%, rgb(204, 210, 232) 53.095238095238095%, rgb(255, 255, 255) 99.76190476190476%) rgb(222, 222, 222);
+  background:     -ms-linear-gradient(0deg, rgb(255, 255, 255) 0%, rgb(204, 210, 232) 53.095238095238095%, rgb(255, 255, 255) 99.76190476190476%) rgb(222, 222, 222);
+  background:         linear-gradient(450deg, rgb(255, 255, 255) 0%, rgb(204, 210, 232) 53.095238095238095%, rgb(255, 255, 255) 99.76190476190476%) rgb(222, 222, 222);
+}
+
+.image {
+  display: block;
+  position: absolute;
+  left: 0;
+  right: 0;
+  min-width: 270px;
+  max-width: 475px;
+  height: auto;
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+.text {
+  position: absolute;
+  text-align: center;
+}
+
+._button {
+  display: block;
+  width: 138px;
+  height: 37px;
+  border: 1px solid rgb(77, 77, 77);
+  border-radius: 10px;
+  background-color: rgb(77, 91, 147);
+  text-align: center;
+}
+
+._input {
+  display: block;
+  float: left;
+  width: 54.3933054393%;
+  height: 31px;
+  margin-top: 10px;
+  padding: 0 10px;
+  border: 1px solid rgb(128, 128, 128);
+  border-radius: 10px;
+  background-color: rgb(242, 242, 242);
+  font-size: 0.619em;
+  color: rgb(0, 0, 0);
+}
+
+.container-1 {
+  top: 352px;
+  z-index: 7;
+}
+
+.container-2 {
+  top: 303px;
+  z-index: 4;
+}
+
+.image-1 {
+  top: 58px;
+  z-index: 8;
+  width: 38.5833333333%;
+}
+
+.image-2 {
+  top: 573px;
+  z-index: 12;
+  width: 36.1666666666%;
+}
+
+.text-1 {
+  left: 12%;
+  z-index: 5;
+  width: 28.0991735537%;
+  min-width: 100px;
+}
+
+.text-2 {
+  left: 7%;
+  z-index: 2;
+  width: 32.6359832635%;
+  min-width: 130px;
+}
+
+.text-3 {
+  top: 540px;
+  left: 0;
+  right: 0;
+  z-index: 9;
+  width: 47.0833333333%;
+  min-height: 20px;
+  margin: 0 auto;
+  font-size: 0.857em;
+  color: rgb(0, 0, 0);
+}
+
+._button-1 {
+  position: absolute;
+  top: 417px;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  margin: 0 auto;
+  background-image: -webkit-linear-gradient(269deg, rgb(198, 204, 244) 0%, rgb(0, 50, 248) 27.380952380952383%, rgb(0, 50, 248) 76.66666666666667%, rgb(203, 203, 243) 100%);
+  background-image:    -moz-linear-gradient(269deg, rgb(198, 204, 244) 0%, rgb(0, 50, 248) 27.380952380952383%, rgb(0, 50, 248) 76.66666666666667%, rgb(203, 203, 243) 100%);
+  background-image:      -o-linear-gradient(269deg, rgb(198, 204, 244) 0%, rgb(0, 50, 248) 27.380952380952383%, rgb(0, 50, 248) 76.66666666666667%, rgb(203, 203, 243) 100%);
+  background-image:     -ms-linear-gradient(269deg, rgb(198, 204, 244) 0%, rgb(0, 50, 248) 27.380952380952383%, rgb(0, 50, 248) 76.66666666666667%, rgb(203, 203, 243) 100%);
+  background-image:         linear-gradient(181deg, rgb(198, 204, 244) 0%, rgb(0, 50, 248) 27.380952380952383%, rgb(0, 50, 248) 76.66666666666667%, rgb(203, 203, 243) 100%);
+  font-size: 1.048em;
+  color: rgb(255, 255, 255);
+}
+
+._button-2 {
+  position: relative;
+  float: left;
+  z-index: 10;
+  margin: 475px 0 0 22%;
+  background-image: -webkit-linear-gradient(271deg, rgb(255, 255, 255) 0%, rgb(190, 190, 190) 36.19047619047619%, rgb(190, 190, 190) 63.57142857142857%, rgb(255, 255, 255) 100%);
+  background-image:    -moz-linear-gradient(271deg, rgb(255, 255, 255) 0%, rgb(190, 190, 190) 36.19047619047619%, rgb(190, 190, 190) 63.57142857142857%, rgb(255, 255, 255) 100%);
+  background-image:      -o-linear-gradient(271deg, rgb(255, 255, 255) 0%, rgb(190, 190, 190) 36.19047619047619%, rgb(190, 190, 190) 63.57142857142857%, rgb(255, 255, 255) 100%);
+  background-image:     -ms-linear-gradient(271deg, rgb(255, 255, 255) 0%, rgb(190, 190, 190) 36.19047619047619%, rgb(190, 190, 190) 63.57142857142857%, rgb(255, 255, 255) 100%);
+  background-image:         linear-gradient(179deg, rgb(255, 255, 255) 0%, rgb(190, 190, 190) 36.19047619047619%, rgb(190, 190, 190) 63.57142857142857%, rgb(255, 255, 255) 100%);
+  font-size: 0.857em;
+  color: rgb(4, 4, 4);
+}
+
+._button-3 {
+  position: relative;
+  float: right;
+  z-index: 11;
+  margin: 475px 22% 0 0;
+  background-image: -webkit-linear-gradient(271deg, rgb(255, 255, 255) 0%, rgb(190, 190, 190) 36.19047619047619%, rgb(190, 190, 190) 63.57142857142857%, rgb(255, 255, 255) 100%);
+  background-image:    -moz-linear-gradient(271deg, rgb(255, 255, 255) 0%, rgb(190, 190, 190) 36.19047619047619%, rgb(190, 190, 190) 63.57142857142857%, rgb(255, 255, 255) 100%);
+  background-image:      -o-linear-gradient(271deg, rgb(255, 255, 255) 0%, rgb(190, 190, 190) 36.19047619047619%, rgb(190, 190, 190) 63.57142857142857%, rgb(255, 255, 255) 100%);
+  background-image:     -ms-linear-gradient(271deg, rgb(255, 255, 255) 0%, rgb(190, 190, 190) 36.19047619047619%, rgb(190, 190, 190) 63.57142857142857%, rgb(255, 255, 255) 100%);
+  background-image:         linear-gradient(179deg, rgb(255, 255, 255) 0%, rgb(190, 190, 190) 36.19047619047619%, rgb(190, 190, 190) 63.57142857142857%, rgb(255, 255, 255) 100%);
+  font-size: 0.762em;
+  color: rgb(4, 4, 4);
+}
+
+.container ._input-1 {
+  margin-left: 40.99626%;
+}
+
+.container ._input-2 {
+  margin-left: 41.99703%;
+}
