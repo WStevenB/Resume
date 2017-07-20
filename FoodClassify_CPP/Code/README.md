@@ -28,7 +28,6 @@ deep = Deep Convolutional Neural Network / Overfeat
 
 <h4>Requirements</h4>
 -please download the overfeat module into the project folder as overfeat
-<br>-please download the train and test folder for images class-wise into the project folder
 
 <h4> Notes </h4>
 All reports will be found in the Report folder
