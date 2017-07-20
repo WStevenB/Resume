@@ -1,4 +1,4 @@
-Generally, each directory above contains a Code folder and a report.pdf explaining the project and how to build it yourself. Here's the verified operating systems and main tools you would need for each. 
+Generally, each directory above contains a Code folder (or source files) and a report.pdf explaining the project and how to build it yourself. Here's the verified operating systems and main tools you would need for each. 
 
 Blacklist         OS X, Windows, Linux    Eclipse Neon 2.2
 CarFinder         OS X, Linux             G++
