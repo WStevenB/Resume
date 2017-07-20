@@ -1,0 +1,32 @@
+#import mysql library
+library("RMySQL")
+
+
+#create connection object and run query finding number of payments in each price group
+#save result as bar graph
+
+mysqlconnection = dbConnect(MySQL(), user = 'root', password = 'yourPasswordHere', dbname = 'sakila', host = 'localhost')
+result = dbSendQuery(mysqlconnection, "select count(1) from payment where amount < 1 union select count(1) from payment where amount < 2 and amount >= 1 union select count(1) from payment where amount < 3 and amount >= 2 union select count(1) from payment where amount < 4 and amount >= 3 union select count(1) from payment where amount < 5 and amount >= 4 union select count(1) from payment where amount < 6 and amount >= 5 union select count(1) from payment where amount < 7 and amount >= 6 union select count(1) from payment where amount < 8 and amount >= 7 union select count(1) from payment where amount < 9 and amount >= 8 union select count(1) from payment where amount < 10 and amount >= 9")
+df = fetch(result)
+png(file = "priceChart.png")
+labels <- c("0-1","1-2","2-3","3-4","4-5", "5-6", "6-7", "7-8", "8-9", "9-10")
+barplot(t(as.matrix(df)), names.arg = labels,xlab = "Amount Group", ylab = "Count", col = "blue", main = "Payment Chart", border = "red")
+dev.off()
+
+
+#query the amount of payments made
+#calculate several plot with varying standard deviation and means
+#save each as cartesian graph
+
+result2 = dbSendQuery(mysqlconnection, "select amount from payment")
+df2 = fetch(result2)
+Amounts = t(as.vector(df2))
+for (m in 3:7) {
+  for(d in 2:5) {
+	Distribution <- pnorm(Amounts, mean = m, sd = d)
+	filename <- paste("priceDistribution",m,d,".png", sep = "", collapse = "")
+	png(file = filename)
+	plot(Amounts, Distribution)
+	dev.off()
+  }
+}
