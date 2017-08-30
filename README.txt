@@ -1,7 +1,3 @@
-NOTE - several places in this repository advertise downloads/websites at 68.54.220.227
-However, I am in the process of moving, and this computer is down for the moment. I expect to have it going again around 8/22/17. Sorry for the inconvenience. 
-
-
 Generally, each directory above contains a Code folder (or source files) and a report.pdf explaining the project and how to build it yourself. Here's the verified operating systems and main tools you would need for each. 
 
 Blacklist         OS X, Windows, Linux    Eclipse Neon 2.2
