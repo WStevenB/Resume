@@ -1,6 +1,6 @@
 View this project at...
 
-http://68.54.220.227/sqlite/independentstudy.html
+http://73.102.54.18/sqlite/independentstudy.html
 
 
 Converter - contains code to randomize keywordCode function and output file matching standard SQL to encoded keywords
