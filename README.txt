@@ -11,3 +11,4 @@ SQLiteExtension   OS X, Windows, Linux    GCC
 SpellingSquared   OS X, Windows, Linux    Android Studio
 Stats             OS X, Windows, Linux    R and MySQL
 Timesheet         Windows                 Visual Studio
+Xinu              OS X, Linux             GCC arm cross-compiler and Qemu
